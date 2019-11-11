@@ -1,9 +1,9 @@
 package de.eldoria.commandry.util.reflection;
 
 import java.lang.annotation.Annotation;
-import java.lang.reflect.Method;
+import java.lang.reflect.AnnotatedElement;
+import java.lang.reflect.Member;
 import java.lang.reflect.Modifier;
-import java.lang.reflect.Parameter;
 import java.util.Optional;
 
 public final class ReflectionUtils {
@@ -12,20 +12,13 @@ public final class ReflectionUtils {
 
     }
 
-    public static <A extends Annotation> Optional<A> getAnnotation(Class<A> annotationClass, Method method) {
-        return Optional.ofNullable(method.getAnnotation(annotationClass));
+    public static <A extends Annotation> Optional<A> getAnnotation(Class<A> annotationClass,
+                                                                   AnnotatedElement annotatedElement) {
+        return Optional.ofNullable(annotatedElement.getAnnotation(annotationClass));
     }
 
-    public static <A extends Annotation> Optional<A> getAnnotation(Class<A> annotationClass, Parameter parameter) {
-        return Optional.ofNullable(parameter.getAnnotation(annotationClass));
-    }
-
-    public static boolean isStatic(Method method) {
-        return hasModifiers(method, Modifier.STATIC);
-    }
-
-    private static boolean hasModifiers(Method method, int modifiers) {
-        return (method.getModifiers() & modifiers) != 0;
+    public static boolean isStatic(Member member) {
+        return hasModifiers(member, Modifier.STATIC);
     }
 
     public static <O> Optional<O> newInstance(Class<O> clazz) {
@@ -34,5 +27,9 @@ public final class ReflectionUtils {
         } catch (Exception ignore) {
             return Optional.empty();
         }
+    }
+
+    private static boolean hasModifiers(Member member, int modifiers) {
+        return (member.getModifiers() & modifiers) != 0;
     }
 }
