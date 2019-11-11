@@ -4,7 +4,6 @@ import de.eldoria.commandry.util.reflection.CheckedInstanceMethod;
 import de.eldoria.commandry.util.reflection.ParameterChain;
 
 import java.lang.reflect.Method;
-import java.util.function.Consumer;
 
 public class CommandNode extends Node {
     private final String name;
@@ -13,12 +12,6 @@ public class CommandNode extends Node {
     public CommandNode(String name, Method method, Object commandHandler) {
         this.name = name;
         this.method = CheckedInstanceMethod.of(method, commandHandler);
-    }
-
-    @Override
-    public void accept(Consumer<Node> visitor) {
-        visitor.accept(this);
-        children.forEach((s, c) -> c.accept(visitor));
     }
 
     @Override

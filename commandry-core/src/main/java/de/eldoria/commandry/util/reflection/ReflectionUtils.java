@@ -28,11 +28,11 @@ public final class ReflectionUtils {
         return (method.getModifiers() & modifiers) != 0;
     }
 
-    public static <O> O newInstance(Class<O> clazz) {
+    public static <O> Optional<O> newInstance(Class<O> clazz) {
         try {
-            return clazz.getConstructor().newInstance();
+            return Optional.of(clazz.getConstructor().newInstance());
         } catch (Exception ignore) {
-            return null;
+            return Optional.empty();
         }
     }
 }

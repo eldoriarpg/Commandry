@@ -2,6 +2,7 @@ package de.eldoria.commandry;
 
 import de.eldoria.commandry.annotation.Command;
 import de.eldoria.commandry.context.CommandContext;
+import de.eldoria.commandry.exception.CommandExecutionException;
 import de.eldoria.commandry.tree.CommandNode;
 import de.eldoria.commandry.tree.Node;
 import de.eldoria.commandry.tree.RootNode;
@@ -17,12 +18,10 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Objects;
 import java.util.Queue;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 
-public class Commandry<C extends CommandContext<C>, R> {
+public class Commandry<C extends CommandContext<C>> {
     private static final Comparator<Pair<Method, Command>> METHOD_COMPARATOR;
-    private final RootNode root = new RootNode();
 
     static {
         METHOD_COMPARATOR = Comparator
@@ -30,27 +29,29 @@ public class Commandry<C extends CommandContext<C>, R> {
                 .thenComparing(pair -> pair.getSecond().value());
     }
 
-    public R runCommand(C context, String input) {
+    private final RootNode root = new RootNode();
+
+    public void runCommand(C context, String input) {
         // TODO context integration
         StringReader reader = new StringReader(input);
         if (!reader.canRead()) {
-            throw new IllegalArgumentException("No input given.");
+            throw new CommandExecutionException("No input given.", null);
         }
-        Node first = root.find(reader.readWord());
-        if (first == null) {
-            throw new IllegalArgumentException("Command not found.");
+        var first = root.find(reader.readWord());
+        if (first.isEmpty()) {
+            reader.reset();
+            throw new CommandExecutionException("Command not found.", reader.readRemaining());
         }
-        runCommand(reader, first, new LinkedList<>());
-        return null;
+        runCommand(reader, first.get(), new LinkedList<>(), context);
     }
 
-    public void registerCommands(Class<?> clazz) {
+    public <T> void registerCommands(Class<T> clazz) {
         var commandHandler = ReflectionUtils.newInstance(clazz);
-        if (commandHandler == null) {
+        if (commandHandler.isEmpty()) {
             // TODO
             return;
         }
-        var commandMethods = getCommandMethods(commandHandler);
+        var commandMethods = getCommandMethods(commandHandler.get());
         for (var pair : commandMethods) {
             LinkedList<String> parents;
             if (pair.getSecond().parents().isBlank()) {
@@ -62,8 +63,27 @@ public class Commandry<C extends CommandContext<C>, R> {
         }
     }
 
-    private void runCommand(StringReader reader, Node current, List<Object> args) {
+    /*
+        Explanation:
+        Staring with the first word after the command name, we call this method with
+            (1) reader being the reader for the whole command input
+            (2) current is the top level command which was called
+            (3) args is an empty list meant for parsed arguments
+            (4) context is the context object to pass to the parameter chain if possible
+        First, we try to offer the context to the parameter chain of (2). That will be the case
+        if it's the first method parameter. Afterwards, we're check if (1) has remaining content.
+        If not, we're trying to complete the parameter chain (optional parameters will be used if available).
+        If yes, we're start reading the next words and offer them as long as the parameter chain requires more
+        arguments.
+        Then, when a further word is required, sub commands are prioritised over optional parameters.
+     */
+    private void runCommand(StringReader reader, Node current, List<Object> args, C context) {
         var parameterChain = current.getParameterChain();
+        var argsWillOffer = !args.isEmpty() && args.get(0) == context;
+        if (!argsWillOffer && parameterChain.acceptsFurtherArgument()
+                && parameterChain.getNextType().isInstance(context)) {
+            parameterChain.offerArgument(context);
+        }
         if (!reader.canRead()) {
             parameterChain.completeArguments();
             current.execute(parameterChain.getArgumentArray());
@@ -80,14 +100,9 @@ public class Commandry<C extends CommandContext<C>, R> {
             next = reader.readWord();
         }
         var possibleSubCommand = next;
-        AtomicBoolean b = new AtomicBoolean();
-        current.accept(node -> {
-            if (node.getName().equals(possibleSubCommand)) {
-                b.set(true);
-                runCommand(reader, node, parameterChain.getArgumentList());
-            }
-        });
-        if (!b.get()) {
+        var node = current.find(next);
+        node.ifPresent(n -> runCommand(reader, n, parameterChain.getArgumentList(), context));
+        if (node.isEmpty()) {
             next = possibleSubCommand;
             while (parameterChain.acceptsFurtherArgument()) {
                 parameterChain.offerArgument(next); // TODO parse
@@ -105,18 +120,14 @@ public class Commandry<C extends CommandContext<C>, R> {
         if (parents.isEmpty()) {
             parent.addChild(command, new CommandNode(command, method, commandHandler));
         } else {
-            String next = parents.poll();
-            parent.accept(node -> {
-                if (node.getName().equals(next)) {
-                    addCommand(method, commandHandler, command, parents, node);
-                }
-            });
+            var next = parents.poll();
+            var node = parent.find(next);
+            node.ifPresent(n -> addCommand(method, commandHandler, command, parents, n));
         }
     }
 
     private List<Pair<Method, Command>> getCommandMethods(Object commandHandler) {
         var clazz = commandHandler.getClass();
-        // TODO method must have context argument
         return Arrays.stream(clazz.getDeclaredMethods())
                 .map(this::methodToPair)
                 .filter(Objects::nonNull)
