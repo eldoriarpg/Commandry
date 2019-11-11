@@ -20,6 +20,12 @@ import java.util.Objects;
 import java.util.Queue;
 import java.util.stream.Collectors;
 
+/**
+ * This class is the core of the framework. An instance of it can be used to register commands
+ * and run commands by providing the raw input string.
+ *
+ * @param <C> the type of the context.
+ */
 public class Commandry<C extends CommandContext<C>> {
     private static final Comparator<Pair<Method, Command>> METHOD_COMPARATOR;
 
@@ -31,9 +37,16 @@ public class Commandry<C extends CommandContext<C>> {
 
     private final RootNode root = new RootNode();
 
+    /**
+     * Runs a command given by the input with the provided context. If the command
+     * couldn't be handled correctly, a {@link CommandExecutionException} will be thrown.
+     *
+     * @param context the context to delegate to the command handler.
+     * @param input   the raw input string.
+     */
     public void runCommand(C context, String input) {
         // TODO context integration
-        StringReader reader = new StringReader(input);
+        var reader = new StringReader(input);
         if (!reader.canRead()) {
             throw new CommandExecutionException("No input given.", null);
         }
@@ -42,9 +55,16 @@ public class Commandry<C extends CommandContext<C>> {
             reader.reset();
             throw new CommandExecutionException("Command not found.", reader.readRemaining());
         }
-        runCommand(reader, first.get(), new LinkedList<>(), context);
+        execute(reader, first.get(), new LinkedList<>(), context);
     }
 
+    /**
+     * Registers a new class as command handler. Each public instance method
+     * which is annotated with {@link Command} will be loaded as command.
+     *
+     * @param clazz the class to register as command handler.
+     * @param <T>   the type of the class.
+     */
     public <T> void registerCommands(Class<T> clazz) {
         var commandHandler = ReflectionUtils.newInstance(clazz);
         if (commandHandler.isEmpty()) {
@@ -77,7 +97,7 @@ public class Commandry<C extends CommandContext<C>> {
         arguments.
         Then, when a further word is required, sub commands are prioritised over optional parameters.
      */
-    private void runCommand(StringReader reader, Node current, List<Object> args, C context) {
+    private void execute(StringReader reader, Node current, List<Object> args, C context) {
         var parameterChain = current.getParameterChain();
         var argsWillOffer = !args.isEmpty() && args.get(0) == context;
         if (!argsWillOffer && parameterChain.acceptsFurtherArgument()
@@ -101,7 +121,7 @@ public class Commandry<C extends CommandContext<C>> {
         }
         var possibleSubCommand = next;
         var node = current.find(next);
-        node.ifPresent(n -> runCommand(reader, n, parameterChain.getArgumentList(), context));
+        node.ifPresent(n -> execute(reader, n, parameterChain.getArgumentList(), context));
         if (node.isEmpty()) {
             next = possibleSubCommand;
             while (parameterChain.acceptsFurtherArgument()) {

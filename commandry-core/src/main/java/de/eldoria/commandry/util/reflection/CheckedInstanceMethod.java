@@ -4,17 +4,30 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
 
+/**
+ * This class is used as wrapper to adapt required functionality of {@link Method}.
+ * It's limited to instance methods and does not throw checked exceptions. The instance
+ * to call the method with is directly bound to this object.
+ * Also, parameters of the method are provided as chain, so they only can accessed one after another
+ * in the order they're declared.
+ */
 public final class CheckedInstanceMethod {
     private final Method method;
-    private final ParameterChain parameterChain;
     private final Object instance;
 
     private CheckedInstanceMethod(Method method, Object instance) {
         this.method = method;
-        this.parameterChain = new ParameterChain(method.getParameters());
         this.instance = instance;
     }
 
+    /**
+     * Creates the wrapped method object for the given method and an associated object.
+     * The declaring class of the method must be assignable from the object class.
+     *
+     * @param method   the method to wrap.
+     * @param instance the object instance to call the method with.
+     * @return the wrapped method.
+     */
     public static CheckedInstanceMethod of(Method method, Object instance) {
         if (!method.getDeclaringClass().isAssignableFrom(instance.getClass())) {
             throw new IllegalArgumentException("instance isn't of the type " + method.getDeclaringClass());
@@ -29,6 +42,14 @@ public final class CheckedInstanceMethod {
         return new CheckedInstanceMethod(method, instance);
     }
 
+    /**
+     * Invokes the method with the given arguments. If the method cannot be invoked
+     * with the given arguments, a {@link RuntimeException} will be thrown. To check if the arguments
+     * are valid, {@link #canInvoke(Object...)} can be used.
+     *
+     * @param args the arguments to invoke the method with.
+     * @see #canInvoke(Object...)
+     */
     public void invoke(Object... args) {
         try {
             method.invoke(instance, args);
@@ -37,6 +58,15 @@ public final class CheckedInstanceMethod {
         }
     }
 
+    /**
+     * Returns whether the given arguments can be used to invoke the method successfully.
+     * This means, that each argument is compared to the type the method requires at the parameter
+     * with the same index. If the length of the arguments is not equal to the length of the parameters,
+     * {@code false} will be returned.
+     *
+     * @param args the arguments to check.
+     * @return {@code true} if the method can be invoked with the given arguments, {@code false} otherwise.
+     */
     public boolean canInvoke(Object... args) {
         Parameter[] params = method.getParameters();
         if (params.length != args.length) return false;
@@ -48,7 +78,14 @@ public final class CheckedInstanceMethod {
         return true;
     }
 
+    /**
+     * Returns a new {@link ParameterChain} object for this method.
+     * Multiple calls will result in different objects, since ParameterChain
+     * is mutable.
+     *
+     * @return a new ParameterChain for this method.
+     */
     public ParameterChain getParameterChain() {
-        return parameterChain;
+        return new ParameterChain(method.getParameters());
     }
 }

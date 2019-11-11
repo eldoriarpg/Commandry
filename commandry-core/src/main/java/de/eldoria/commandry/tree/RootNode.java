@@ -4,6 +4,11 @@ import de.eldoria.commandry.util.reflection.ParameterChain;
 
 import java.lang.reflect.Parameter;
 
+/**
+ * This class is used to represent a special node which isn't a command node.
+ * It's the root of the node tree which cannot be executed. A top level command should be
+ * added as child of this one.
+ */
 public class RootNode extends Node {
     private static final ParameterChain NULL_PARAMETER_CHAIN = new NullParameterChain();
 
@@ -24,7 +29,7 @@ public class RootNode extends Node {
 
     private static class NullParameterChain extends ParameterChain {
 
-        public NullParameterChain() {
+        NullParameterChain() {
             super(new Parameter[0]);
         }
 
