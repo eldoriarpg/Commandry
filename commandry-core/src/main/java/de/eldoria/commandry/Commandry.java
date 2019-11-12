@@ -79,7 +79,7 @@ public class Commandry<C extends CommandContext<C>> {
             } else {
                 parents = StringUtils.splitString(pair.getSecond().parents(), " ", LinkedList::new);
             }
-            addCommand(pair.getFirst(), commandHandler, pair.getSecond().value(), parents, root);
+            addCommand(pair.getFirst(), commandHandler.get(), pair.getSecond().value(), parents, root);
         }
     }
 
