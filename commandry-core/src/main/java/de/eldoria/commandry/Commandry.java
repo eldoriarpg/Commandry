@@ -2,6 +2,7 @@ package de.eldoria.commandry;
 
 import de.eldoria.commandry.annotation.Command;
 import de.eldoria.commandry.context.CommandContext;
+import de.eldoria.commandry.exception.CommandException;
 import de.eldoria.commandry.exception.CommandExecutionException;
 import de.eldoria.commandry.tree.CommandNode;
 import de.eldoria.commandry.tree.Node;
@@ -45,7 +46,6 @@ public class Commandry<C extends CommandContext<C>> {
      * @param input   the raw input string.
      */
     public void runCommand(C context, String input) {
-        // TODO context integration
         var reader = new StringReader(input);
         if (!reader.canRead()) {
             throw new CommandExecutionException("No input given.", null);
@@ -66,12 +66,10 @@ public class Commandry<C extends CommandContext<C>> {
      * @param <T>   the type of the class.
      */
     public <T> void registerCommands(Class<T> clazz) {
-        var commandHandler = ReflectionUtils.newInstance(clazz);
-        if (commandHandler.isEmpty()) {
-            // TODO
-            return;
-        }
-        var commandMethods = getCommandMethods(commandHandler.get());
+        var commandHandler = ReflectionUtils.newInstance(clazz)
+                .orElseThrow(() -> new CommandException("Failed to register commands for class %s. "
+                        + "No instance could be created. Is the default constructor public?"));
+        var commandMethods = getCommandMethods(commandHandler);
         for (var pair : commandMethods) {
             LinkedList<String> parents;
             if (pair.getSecond().parents().isBlank()) {
@@ -79,7 +77,7 @@ public class Commandry<C extends CommandContext<C>> {
             } else {
                 parents = StringUtils.splitString(pair.getSecond().parents(), " ", LinkedList::new);
             }
-            addCommand(pair.getFirst(), commandHandler.get(), pair.getSecond().value(), parents, root);
+            addCommand(pair.getFirst(), commandHandler, pair.getSecond().value(), parents, root);
         }
     }
 
@@ -114,8 +112,8 @@ public class Commandry<C extends CommandContext<C>> {
         while (parameterChain.requiresFurtherArgument()) {
             parameterChain.offerArgument(next); // TODO parse
             if (!reader.canRead()) {
-                // TODO throw exception, too few arguments
-                return;
+                reader.reset();
+                throw new CommandExecutionException("Wrong arguments, cannot perform command.", reader.readRemaining());
             }
             next = reader.readWord();
         }
