@@ -29,14 +29,13 @@ import java.util.stream.Collectors;
  */
 public class Commandry<C extends CommandContext<C>> {
     private static final Comparator<Pair<Method, Command>> METHOD_COMPARATOR;
+    private final RootNode root = new RootNode();
 
     static {
         METHOD_COMPARATOR = Comparator
                 .comparing((Pair<Method, Command> pair) -> pair.getSecond().parents())
                 .thenComparing(pair -> pair.getSecond().value());
     }
-
-    private final RootNode root = new RootNode();
 
     /**
      * Runs a command given by the input with the provided context. If the command

@@ -21,6 +21,8 @@ public final class CollectionUtils {
      * then different implementations of specific collection types.
      * If the function maps values to null and the target collection doesn't support null
      * elements, it may have unintended behaviour.
+     * All parameters require non-null arguments, otherwise a {@link NullPointerException} will
+     * be thrown.
      *
      * @param input              the input collection.
      * @param convertFunction    the convert function to convert single entries.
@@ -43,6 +45,8 @@ public final class CollectionUtils {
      * Converts an array of a type to a collection of another type using the given function.
      * If the function maps values to null and the target collection doesn't support null
      * elements, it may have unintended behaviour.
+     * All parameters require non-null arguments, otherwise a {@link NullPointerException} will
+     * be thrown.
      *
      * @param input              the input array.
      * @param convertFunction    the convert function.
