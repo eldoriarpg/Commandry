@@ -10,6 +10,7 @@ import de.eldoria.commandry.tree.RootNode;
 import de.eldoria.commandry.util.Pair;
 import de.eldoria.commandry.util.StringReader;
 import de.eldoria.commandry.util.StringUtils;
+import de.eldoria.commandry.util.reflection.ParameterChain;
 import de.eldoria.commandry.util.reflection.ReflectionUtils;
 
 import java.lang.reflect.Method;
@@ -19,6 +20,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Objects;
 import java.util.Queue;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 /**
@@ -29,6 +31,7 @@ import java.util.stream.Collectors;
  */
 public class Commandry<C extends CommandContext<C>> {
     private static final Comparator<Pair<Method, Command>> METHOD_COMPARATOR;
+    private static final String NO_MATCHING_COMMAND_FOUND = "No matching command found.";
     private final RootNode root = new RootNode();
 
     static {
@@ -44,17 +47,10 @@ public class Commandry<C extends CommandContext<C>> {
      * @param context the context to delegate to the command handler.
      * @param input   the raw input string.
      */
-    public void runCommand(C context, String input) {
+    public final void runCommand(C context, String input) {
         var reader = new StringReader(input);
-        if (!reader.canRead()) {
-            throw new CommandExecutionException("No input given.", null);
-        }
-        var first = root.find(reader.readWord());
-        if (first.isEmpty()) {
-            reader.reset();
-            throw new CommandExecutionException("Command not found.", reader.readRemaining());
-        }
-        execute(reader, first.get(), new LinkedList<>(), context);
+        checkEmptyInput(reader);
+        execute(reader, context);
     }
 
     /**
@@ -64,7 +60,7 @@ public class Commandry<C extends CommandContext<C>> {
      * @param clazz the class to register as command handler.
      * @param <T>   the type of the class.
      */
-    public <T> void registerCommands(Class<T> clazz) {
+    public final <T> void registerCommands(Class<T> clazz) {
         var commandHandler = ReflectionUtils.newInstance(clazz)
                 .orElseThrow(() -> new CommandException("Failed to register commands for class %s. "
                         + "No instance could be created. Is the default constructor public?"));
@@ -80,62 +76,49 @@ public class Commandry<C extends CommandContext<C>> {
         }
     }
 
-    /*
-        Explanation:
-        Staring with the first word after the command name, we call this method with
-            (1) reader being the reader for the whole command input
-            (2) current is the top level command which was called
-            (3) args is an empty list meant for parsed arguments
-            (4) context is the context object to pass to the parameter chain if possible
-        First, we try to offer the context to the parameter chain of (2). That will be the case
-        if it's the first method parameter. Afterwards, we're check if (1) has remaining content.
-        If not, we're trying to complete the parameter chain (optional parameters will be used if available).
-        If yes, we're start reading the next words and offer them as long as the parameter chain requires more
-        arguments.
-        Then, when a further word is required, sub commands are prioritised over optional parameters.
+    /**
+     * This method gets called internally when a command is registered. This can be used
+     * for systems that require an additional registration. In the default implementation,
+     * nothing will happen.
+     *
+     * @param command the command string that got registered.
      */
-    private void execute(StringReader reader, Node current, List<Object> args, C context) {
-        var parameterChain = current.getParameterChain();
-        var argsWillOffer = !args.isEmpty() && args.get(0) == context;
-        if (!argsWillOffer && parameterChain.acceptsFurtherArgument()
-                && parameterChain.getNextType().isInstance(context)) {
-            parameterChain.offerArgument(context);
-        }
-        if (!reader.canRead()) {
-            parameterChain.completeArguments();
-            current.execute(parameterChain.getArgumentArray());
-            return;
-        }
-        var next = reader.readWord();
-        parameterChain.offerAll(args);
-        while (parameterChain.requiresFurtherArgument()) {
-            parameterChain.offerArgument(next); // TODO parse
-            if (!reader.canRead()) {
-                reader.reset();
-                throw new CommandExecutionException("Wrong arguments, cannot perform command.", reader.readRemaining());
+    protected void onCommandRegistration(String command) {
+
+    }
+
+    private void execute(StringReader reader, C context) {
+        Node currentCommand = null;
+        ParameterChain parameterChain = null;
+        while (reader.canRead()) {
+            var word = reader.readWord();
+            if (currentCommand == null) {
+                currentCommand = root.find(word)
+                        .orElseThrow(noMatchingCommandFound(word));
+                parameterChain = currentCommand.getParameterChain();
+                offerAll(parameterChain, List.of(), context);
+            } else if (parameterChain.acceptsFurtherArgument()) {
+                parameterChain.offerArgument(word);
+            } else {
+                currentCommand = currentCommand.find(word)
+                        .orElseThrow(noMatchingCommandFound(word));
+                var argumentList = parameterChain.getArgumentList();
+                parameterChain = currentCommand.getParameterChain();
+                offerAll(parameterChain, argumentList, context);
             }
-            next = reader.readWord();
         }
-        var possibleSubCommand = next;
-        var node = current.find(next);
-        node.ifPresent(n -> execute(reader, n, parameterChain.getArgumentList(), context));
-        if (node.isEmpty()) {
-            next = possibleSubCommand;
-            while (parameterChain.acceptsFurtherArgument()) {
-                parameterChain.offerArgument(next); // TODO parse
-                if (!reader.canRead()) {
-                    break;
-                }
-                next = reader.readWord();
-            }
-            parameterChain.completeArguments();
-            current.execute(parameterChain.getArgumentArray());
+        if (parameterChain != null && parameterChain.requiresFurtherArgument()) {
+            reader.reset();
+            throw new CommandExecutionException("Too few arguments.", reader.readRemaining());
         }
+        parameterChain.completeArguments();
+        currentCommand.execute(parameterChain.getArgumentArray());
     }
 
     private void addCommand(Method method, Object commandHandler, String command, Queue<String> parents, Node parent) {
         if (parents.isEmpty()) {
             parent.addChild(command, new CommandNode(command, method, commandHandler));
+            onCommandRegistration(command);
         } else {
             var next = parents.poll();
             var node = parent.find(next);
@@ -156,5 +139,34 @@ public class Commandry<C extends CommandContext<C>> {
         var a = ReflectionUtils.getAnnotation(Command.class, method);
         if (a.isEmpty()) return null;
         return new Pair<>(method, a.get());
+    }
+
+    private void offerAll(ParameterChain targetChain, List<Object> currentOffers, C context) {
+        /*if (targetChain.getNextType().isInstance(context)) {
+            if (currentOffers.isEmpty() || currentOffers.get(0).equals(context)) {
+
+            }
+        }*/
+
+
+        if (!currentOffers.isEmpty()) {
+            if (targetChain.getNextType().isInstance(context) == currentOffers.get(0).equals(context)) {
+                targetChain.offerAll(currentOffers);
+                return;
+            }
+        }
+        if (targetChain.acceptsFurtherArgument() && targetChain.getNextType().isInstance(context)) {
+            targetChain.offerArgument(context);
+        }
+    }
+
+    private void checkEmptyInput(StringReader reader) {
+        if (!reader.canRead()) {
+            throw new CommandExecutionException("No empty input allowed.", "");
+        }
+    }
+
+    private Supplier<CommandExecutionException> noMatchingCommandFound(String word) {
+        return () -> new CommandExecutionException(NO_MATCHING_COMMAND_FOUND, word);
     }
 }

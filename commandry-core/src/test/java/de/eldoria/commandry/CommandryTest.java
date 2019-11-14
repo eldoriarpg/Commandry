@@ -3,10 +3,12 @@ package de.eldoria.commandry;
 import de.eldoria.commandry.annotation.Command;
 import de.eldoria.commandry.annotation.Optional;
 import de.eldoria.commandry.context.CommandContext;
+import de.eldoria.commandry.exception.CommandExecutionException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class CommandryTest {
@@ -16,6 +18,16 @@ public class CommandryTest {
     void setUp() {
         commandry = new Commandry<>();
         commandry.registerCommands(TestCommandClass.class);
+    }
+
+    @Test
+    void testEmptyInput() {
+        assertThrows(CommandExecutionException.class, () -> commandry.runCommand(context("anything"), ""));
+    }
+
+    @Test
+    void testInvalidCommand() {
+        assertThrows(CommandExecutionException.class, () -> commandry.runCommand(context("anything"), "invalid"));
     }
 
     @Test
@@ -56,6 +68,21 @@ public class CommandryTest {
     @Test
     void testCommandWithContextAndNotUsingOptionalParameter() {
         commandry.runCommand(context("cmd8"), "cmd8 required notOpt");
+    }
+
+    @Test
+    void testSingleSubCommandOfSingleCommandWithoutParameters() {
+        commandry.runCommand(context("..."), "cmd1 cmd9");
+    }
+
+    @Test
+    void testSubCommandOfSingleCommandWithParameters() {
+        commandry.runCommand(context(""), "cmd1 cmd10 ccc");
+    }
+
+    @Test
+    void testSubCommandWithParametersOfSingleCommandWithParameters() {
+        commandry.runCommand(context(""), "cmd2 required otherRequired cmd11 thirdRequired");
     }
 
     private SimpleCommandContext context(String command) {
@@ -114,6 +141,24 @@ public class CommandryTest {
             assertEquals("cmd8", context.getCommand());
             assertEquals("required", required);
             assertEquals("notOpt", optString);
+        }
+
+        @Command(value = "cmd9", parents = "cmd1")
+        public void nine() {
+            assertTrue(true);
+        }
+
+        @Command(value = "cmd10", parents = "cmd1")
+        public void ten(String ccc, @Optional("hello world") String text) {
+            assertEquals("ccc", ccc);
+            assertEquals("hello world", text);
+        }
+
+        @Command(value = "cmd11", parents = "cmd2")
+        public void eleven(String required, String otherRequired, String thirdRequired) {
+            assertEquals("required", required);
+            assertEquals("otherRequired", otherRequired);
+            assertEquals("thirdRequired", thirdRequired);
         }
     }
 
