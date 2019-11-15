@@ -98,6 +98,11 @@ public class StringReader {
         this.position = mark;
     }
 
+    @Override
+    public String toString() {
+        return "StringReader(\"" + string + "\")";
+    }
+
     private char peekChar() {
         return string.charAt(position);
     }

@@ -49,7 +49,6 @@ public class Commandry<C extends CommandContext<C>> {
      */
     public final void runCommand(C context, String input) {
         var reader = new StringReader(input);
-        checkEmptyInput(reader);
         execute(reader, context);
     }
 
@@ -88,6 +87,7 @@ public class Commandry<C extends CommandContext<C>> {
     }
 
     private void execute(StringReader reader, C context) {
+        checkEmptyInput(reader);
         Node currentCommand = null;
         ParameterChain parameterChain = null;
         while (reader.canRead()) {
@@ -107,7 +107,7 @@ public class Commandry<C extends CommandContext<C>> {
                 offerAll(parameterChain, argumentList, context);
             }
         }
-        if (parameterChain != null && parameterChain.requiresFurtherArgument()) {
+        if (parameterChain.requiresFurtherArgument()) {
             reader.reset();
             throw new CommandExecutionException("Too few arguments.", reader.readRemaining());
         }
@@ -142,21 +142,23 @@ public class Commandry<C extends CommandContext<C>> {
     }
 
     private void offerAll(ParameterChain targetChain, List<Object> currentOffers, C context) {
-        /*if (targetChain.getNextType().isInstance(context)) {
-            if (currentOffers.isEmpty() || currentOffers.get(0).equals(context)) {
-
-            }
-        }*/
-
-
-        if (!currentOffers.isEmpty()) {
-            if (targetChain.getNextType().isInstance(context) == currentOffers.get(0).equals(context)) {
-                targetChain.offerAll(currentOffers);
-                return;
-            }
+        if (!targetChain.acceptsFurtherArgument() && currentOffers.isEmpty()) {
+            return;
         }
-        if (targetChain.acceptsFurtherArgument() && targetChain.getNextType().isInstance(context)) {
-            targetChain.offerArgument(context);
+        if (targetChain.getNextType().isInstance(context)) { // chain requires context
+            if (currentOffers.isEmpty() || !currentOffers.get(0).equals(context)) {
+                targetChain.offerArgument(context);
+            }
+            targetChain.offerAll(currentOffers);
+        } else {
+            List<Object> offers;
+            if (!currentOffers.isEmpty() && currentOffers.get(0).equals(context)) {
+                // ignore context
+                offers = currentOffers.subList(1, currentOffers.size());
+            } else {
+                offers = currentOffers;
+            }
+            targetChain.offerAll(offers);
         }
     }
 
