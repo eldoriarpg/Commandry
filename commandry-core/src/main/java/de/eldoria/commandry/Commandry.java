@@ -47,7 +47,7 @@ public class Commandry<C extends CommandContext<C>> {
      * @param context the context to delegate to the command handler.
      * @param input   the raw input string.
      */
-    public final void runCommand(C context, String input) {
+    public void runCommand(C context, String input) {
         var reader = new StringReader(input);
         execute(reader, context);
     }
