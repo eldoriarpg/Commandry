@@ -143,18 +143,20 @@ public class Commandry<C extends CommandContext<C>> {
     }
 
     private void offerWisely(ParameterChain chain, String input) {
-        if (chain.getNextType() == boolean.class) {
+        if (!chain.getNextType().isPrimitive()) {
+            chain.offerArgument(argumentParser.parse(input, chain.getNextType()));
+        } else if (chain.getNextType() == boolean.class) {
             chain.offerArgument(argumentParser.parse(input, boolean.class).booleanValue());
         } else if (chain.getNextType() == int.class) {
             chain.offerArgument(argumentParser.parse(input, int.class).intValue());
         } else if (chain.getNextType() == long.class) {
             chain.offerArgument(argumentParser.parse(input, long.class).longValue());
+        } else if (chain.getNextType() == byte.class) {
+            chain.offerArgument(argumentParser.parse(input, byte.class).byteValue());
         } else if (chain.getNextType() == float.class) {
             chain.offerArgument(argumentParser.parse(input, float.class).floatValue());
         } else if (chain.getNextType() == double.class) {
             chain.offerArgument(argumentParser.parse(input, double.class).doubleValue());
-        } else {
-            chain.offerArgument(argumentParser.parse(input, chain.getNextType()));
         }
     }
 
