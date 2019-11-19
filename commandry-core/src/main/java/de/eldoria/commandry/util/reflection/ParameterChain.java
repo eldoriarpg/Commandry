@@ -18,14 +18,17 @@ public class ParameterChain {
     private final Parameter[] parameters;
     private final Object[] arguments;
     private final int optionalIndex;
+    private final CheckedInstanceMethod method;
     private int position;
 
     /**
      * Creates a new {@code ParameterChain} for the given parameters.
      *
      * @param parameters the parameters which should be represented by this parameter chain.
+     * @param method     the method the parameters belong to.
      */
-    public ParameterChain(Parameter[] parameters) {
+    public ParameterChain(Parameter[] parameters, CheckedInstanceMethod method) {
+        this.method = method;
         int paramsLength = parameters.length;
         int optIndex = paramsLength;
         for (int i = optIndex - 1; i >= 0; i--) {
@@ -91,6 +94,71 @@ public class ParameterChain {
     }
 
     /**
+     * Accepts a boolean value if {@link #acceptsFurtherArgument()} returns true and
+     * {@link #getNextType()} equals {@code boolean.class}. Is is used as boxing does
+     * not work when calling {@link #offerArgument(Object)}.
+     *
+     * @param offer the boolean to offer to the chain.
+     */
+    public void offerArgument(boolean offer) {
+        checkAcceptsFurtherArgument();
+        arguments[position] = offer;
+        position++;
+    }
+
+    /**
+     * Accepts an int value if {@link #acceptsFurtherArgument()} returns true and
+     * {@link #getNextType()} equals {@code int.class}. Is is used as boxing does
+     * not work when calling {@link #offerArgument(Object)}.
+     *
+     * @param offer the int to offer to the chain.
+     */
+    public void offerArgument(int offer) {
+        checkAcceptsFurtherArgument();
+        arguments[position] = offer;
+        position++;
+    }
+
+    /**
+     * Accepts a long value if {@link #acceptsFurtherArgument()} returns true and
+     * {@link #getNextType()} equals {@code long.class}. Is is used as boxing does
+     * not work when calling {@link #offerArgument(Object)}.
+     *
+     * @param offer the long to offer to the chain.
+     */
+    public void offerArgument(long offer) {
+        checkAcceptsFurtherArgument();
+        arguments[position] = offer;
+        position++;
+    }
+
+    /**
+     * Accepts a float value if {@link #acceptsFurtherArgument()} returns true and
+     * {@link #getNextType()} equals {@code float.class}. Is is used as boxing does
+     * not work when calling {@link #offerArgument(Object)}.
+     *
+     * @param offer the float to offer to the chain.
+     */
+    public void offerArgument(float offer) {
+        checkAcceptsFurtherArgument();
+        arguments[position] = offer;
+        position++;
+    }
+
+    /**
+     * Accepts a double value if {@link #acceptsFurtherArgument()} returns true and
+     * {@link #getNextType()} equals {@code double.class}. Is is used as boxing does
+     * not work when calling {@link #offerArgument(Object)}.
+     *
+     * @param offer the double to offer to the chain.
+     */
+    public void offerArgument(double offer) {
+        checkAcceptsFurtherArgument();
+        arguments[position] = offer;
+        position++;
+    }
+
+    /**
      * Accepts a collection of objects to offer. This method works as
      * using {@link #offerArgument(Object)} for each element of a collection.
      *
@@ -132,8 +200,9 @@ public class ParameterChain {
         if (requiresFurtherArgument()) {
             throw new IllegalStateException("Not all required parameters are satisfied.");
         }
+        var parsedOptionals = method.getParsedOptionals();
         for (int i = position; i < parameters.length; i++) {
-            arguments[i] = parseOptional(parameters[i]);
+            arguments[i] = parsedOptionals.get(parameters[i].getName());
         }
     }
 
@@ -153,6 +222,6 @@ public class ParameterChain {
     private Object parseOptional(Parameter parameter) {
         var optional = ReflectionUtils.getAnnotation(Optional.class, parameter)
                 .orElseThrow(() -> new IllegalStateException("Optional annotation not found."));
-        return optional.value(); // TODO parse
+        return optional.value(); // TODO parse but somewhere else
     }
 }

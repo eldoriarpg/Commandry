@@ -1,5 +1,6 @@
 package de.eldoria.commandry.tree;
 
+import de.eldoria.commandry.ArgumentParser;
 import de.eldoria.commandry.util.reflection.CheckedInstanceMethod;
 import de.eldoria.commandry.util.reflection.ParameterChain;
 
@@ -21,10 +22,11 @@ public class CommandNode extends Node {
      * @param name           the name of the command.
      * @param method         the method of the command.
      * @param commandHandler the object in which the method can be called.
+     * @param argumentParser the argument parser for optional parameters.
      */
-    public CommandNode(String name, Method method, Object commandHandler) {
+    public CommandNode(String name, Method method, Object commandHandler, ArgumentParser argumentParser) {
         this.name = name;
-        this.method = CheckedInstanceMethod.of(method, commandHandler);
+        this.method = CheckedInstanceMethod.of(method, commandHandler, argumentParser);
     }
 
     @Override

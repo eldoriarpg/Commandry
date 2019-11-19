@@ -30,7 +30,7 @@ public class RootNode extends Node {
     private static class NullParameterChain extends ParameterChain {
 
         NullParameterChain() {
-            super(new Parameter[0]);
+            super(new Parameter[0], null);
         }
 
     }

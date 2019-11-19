@@ -1,8 +1,11 @@
 package de.eldoria.commandry.util.reflection;
 
+import de.eldoria.commandry.ArgumentParser;
+
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
+import java.util.Map;
 
 /**
  * This class is used as wrapper to adapt required functionality of {@link Method}.
@@ -14,10 +17,12 @@ import java.lang.reflect.Parameter;
 public final class CheckedInstanceMethod {
     private final Method method;
     private final Object instance;
+    private final Map<String, Object> parsedOptionals;
 
-    private CheckedInstanceMethod(Method method, Object instance) {
+    private CheckedInstanceMethod(Method method, Object instance, Map<String, Object> parsedOptionals) {
         this.method = method;
         this.instance = instance;
+        this.parsedOptionals = parsedOptionals;
     }
 
     /**
@@ -26,9 +31,10 @@ public final class CheckedInstanceMethod {
      *
      * @param method   the method to wrap.
      * @param instance the object instance to call the method with.
+     * @param parser   the parser to parse optional parameters with.
      * @return the wrapped method.
      */
-    public static CheckedInstanceMethod of(Method method, Object instance) {
+    public static CheckedInstanceMethod of(Method method, Object instance, ArgumentParser parser) {
         if (!method.getDeclaringClass().isAssignableFrom(instance.getClass())) {
             throw new IllegalArgumentException("instance isn't of the type " + method.getDeclaringClass());
         }
@@ -39,7 +45,8 @@ public final class CheckedInstanceMethod {
         if (!method.canAccess(instance)) {
             throw new IllegalArgumentException("method cannot be accessed. Is it public? " + method.getName());
         }
-        return new CheckedInstanceMethod(method, instance);
+
+        return new CheckedInstanceMethod(method, instance, parser.parseOptionals(method));
     }
 
     /**
@@ -86,6 +93,16 @@ public final class CheckedInstanceMethod {
      * @return a new ParameterChain for this method.
      */
     public ParameterChain getParameterChain() {
-        return new ParameterChain(method.getParameters());
+        return new ParameterChain(method.getParameters(), this);
+    }
+
+    /**
+     * Returns a map of all arguments parsed by their optional parameters. The returned map
+     * may be unmodifiable.
+     *
+     * @return a map of optional arguments.
+     */
+    public Map<String, Object> getParsedOptionals() {
+        return parsedOptionals;
     }
 }

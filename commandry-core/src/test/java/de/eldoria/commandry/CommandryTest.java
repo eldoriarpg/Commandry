@@ -85,6 +85,21 @@ public class CommandryTest {
         commandry.runCommand(context(""), "cmd2 required otherRequired cmd11 thirdRequired");
     }
 
+    @Test
+    void testInputParsing() {
+        commandry.runCommand(context(""), "cmd12 12");
+    }
+
+    @Test
+    void testOptionalParsing() {
+        commandry.runCommand(context(""), "cmd13");
+    }
+
+    @Test
+    void testPrimitiveParsing() {
+        commandry.runCommand(context(""), "cmd14 true 1337 -1337 13.37 -13.37");
+    }
+
     private SimpleCommandContext context(String command) {
         return new SimpleCommandContext(command);
     }
@@ -159,6 +174,25 @@ public class CommandryTest {
             assertEquals("required", required);
             assertEquals("otherRequired", otherRequired);
             assertEquals("thirdRequired", thirdRequired);
+        }
+
+        @Command(value = "cmd12")
+        public void twelve(Integer i){
+            assertEquals(12, i);
+        }
+
+        @Command(value = "cmd13")
+        public void thirteen(@Optional("13") Integer i){
+            assertEquals(13, i);
+        }
+
+        @Command("cmd14")
+        public void fourteen(boolean b, int i, long l, float f, double d) {
+            assertTrue(b);
+            assertEquals(1337, i);
+            assertEquals(-1337, l);
+            assertEquals(13.37f, f);
+            assertEquals(-13.37, d);
         }
     }
 

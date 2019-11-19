@@ -33,6 +33,7 @@ public class Commandry<C extends CommandContext<C>> {
     private static final Comparator<Pair<Method, Command>> METHOD_COMPARATOR;
     private static final String NO_MATCHING_COMMAND_FOUND = "No matching command found.";
     private final RootNode root = new RootNode();
+    private final ArgumentParser argumentParser = new ArgumentParser();
 
     static {
         METHOD_COMPARATOR = Comparator
@@ -98,7 +99,7 @@ public class Commandry<C extends CommandContext<C>> {
                 parameterChain = currentCommand.getParameterChain();
                 offerAll(parameterChain, List.of(), context);
             } else if (parameterChain.acceptsFurtherArgument()) {
-                parameterChain.offerArgument(word);
+                offerWisely(parameterChain, word);
             } else {
                 currentCommand = currentCommand.find(word)
                         .orElseThrow(noMatchingCommandFound(word));
@@ -117,7 +118,7 @@ public class Commandry<C extends CommandContext<C>> {
 
     private void addCommand(Method method, Object commandHandler, String command, Queue<String> parents, Node parent) {
         if (parents.isEmpty()) {
-            parent.addChild(command, new CommandNode(command, method, commandHandler));
+            parent.addChild(command, new CommandNode(command, method, commandHandler, argumentParser));
             onCommandRegistration(command);
         } else {
             var next = parents.poll();
@@ -139,6 +140,22 @@ public class Commandry<C extends CommandContext<C>> {
         var a = ReflectionUtils.getAnnotation(Command.class, method);
         if (a.isEmpty()) return null;
         return new Pair<>(method, a.get());
+    }
+
+    private void offerWisely(ParameterChain chain, String input) {
+        if (chain.getNextType() == boolean.class) {
+            chain.offerArgument(argumentParser.parse(input, boolean.class).booleanValue());
+        } else if (chain.getNextType() == int.class) {
+            chain.offerArgument(argumentParser.parse(input, int.class).intValue());
+        } else if (chain.getNextType() == long.class) {
+            chain.offerArgument(argumentParser.parse(input, long.class).longValue());
+        } else if (chain.getNextType() == float.class) {
+            chain.offerArgument(argumentParser.parse(input, float.class).floatValue());
+        } else if (chain.getNextType() == double.class) {
+            chain.offerArgument(argumentParser.parse(input, double.class).doubleValue());
+        } else {
+            chain.offerArgument(argumentParser.parse(input, chain.getNextType()));
+        }
     }
 
     private void offerAll(ParameterChain targetChain, List<Object> currentOffers, C context) {
