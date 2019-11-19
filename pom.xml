@@ -16,6 +16,10 @@
                 <configuration>
                     <source>11</source>
                     <target>11</target>
+                    <parameters>true</parameters>
+                    <compilerArgs>
+                        <arg>-parameters</arg>
+                    </compilerArgs>
                 </configuration>
             </plugin>
             <plugin>
