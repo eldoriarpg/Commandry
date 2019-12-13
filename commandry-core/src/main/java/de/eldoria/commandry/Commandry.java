@@ -1,5 +1,6 @@
 package de.eldoria.commandry;
 
+import de.eldoria.commandry.annotation.Alias;
 import de.eldoria.commandry.annotation.Command;
 import de.eldoria.commandry.context.CommandContext;
 import de.eldoria.commandry.exception.CommandException;
@@ -121,12 +122,28 @@ public class Commandry<C extends CommandContext<C>> {
 
     private void addCommand(Method method, Object commandHandler, String command, Queue<String> parents, Node parent) {
         if (parents.isEmpty()) {
-            parent.addChild(command, new CommandNode(command, method, commandHandler, argumentParser));
+            addChild(method, commandHandler, command, parent);
             onCommandRegistration(command);
         } else {
             var next = parents.poll();
             var node = parent.find(next);
             node.ifPresent(n -> addCommand(method, commandHandler, command, parents, n));
+        }
+    }
+
+    private void addChild(Method method, Object commandHandler, String command, Node parent) {
+        var node = new CommandNode(parent, command, method, commandHandler, argumentParser);
+        var aliases = ReflectionUtils.getAnnotation(Alias.class, method);
+        if (aliases.isPresent()) {
+            // TODO validate Alias
+            String aliasesString = aliases.get().value();
+            if (aliasesString.contains(",")) {
+                parent.addChild(command, aliasesString.split("( )*,( )*"), node);
+            } else {
+                parent.addChild(command, aliasesString, node);
+            }
+        } else {
+            parent.addChild(command, node);
         }
     }
 
@@ -142,6 +159,7 @@ public class Commandry<C extends CommandContext<C>> {
     private Pair<Method, Command> methodToPair(Method method) {
         var a = ReflectionUtils.getAnnotation(Command.class, method);
         if (a.isEmpty()) return null;
+        // TODO validate Command
         return new Pair<>(method, a.get());
     }
 

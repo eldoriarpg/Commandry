@@ -19,12 +19,14 @@ public class CommandNode extends Node {
      * must match the type of the type in which {@code method} is declared, otherwise
      * an exception may be thrown.
      *
+     * @param parent         the parent node.
      * @param name           the name of the command.
      * @param method         the method of the command.
      * @param commandHandler the object in which the method can be called.
      * @param argumentParser the argument parser for optional parameters.
      */
-    public CommandNode(String name, Method method, Object commandHandler, ArgumentParser argumentParser) {
+    public CommandNode(Node parent, String name, Method method, Object commandHandler, ArgumentParser argumentParser) {
+        super(parent);
         this.name = name;
         this.method = CheckedInstanceMethod.of(method, commandHandler, argumentParser);
     }

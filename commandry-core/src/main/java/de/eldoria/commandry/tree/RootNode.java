@@ -12,6 +12,13 @@ import java.lang.reflect.Parameter;
 public class RootNode extends Node {
     private static final ParameterChain NULL_PARAMETER_CHAIN = new NullParameterChain();
 
+    /**
+     * Creates a root node instance with its parent being null.
+     */
+    public RootNode() {
+        super(null);
+    }
+
     @Override
     public void execute(Object[] args) {
         throw new UnsupportedOperationException("Root node cannot be executed.");
@@ -19,7 +26,7 @@ public class RootNode extends Node {
 
     @Override
     public String getName() {
-        throw new UnsupportedOperationException("Root node has no name.");
+        return "";
     }
 
     @Override
