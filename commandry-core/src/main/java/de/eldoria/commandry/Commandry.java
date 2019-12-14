@@ -5,8 +5,6 @@ import de.eldoria.commandry.annotation.Command;
 import de.eldoria.commandry.context.CommandContext;
 import de.eldoria.commandry.exception.CommandException;
 import de.eldoria.commandry.exception.CommandExecutionException;
-import de.eldoria.commandry.logging.Logger;
-import de.eldoria.commandry.logging.StandardOutputLogger;
 import de.eldoria.commandry.tree.CommandNode;
 import de.eldoria.commandry.tree.Node;
 import de.eldoria.commandry.tree.RootNode;
@@ -37,7 +35,6 @@ public class Commandry<C extends CommandContext<C>> {
     private static final String NO_MATCHING_COMMAND_FOUND = "No matching command found.";
     private final RootNode root = new RootNode();
     private final ArgumentParser argumentParser = new ArgumentParser();
-    private final Logger logger = new StandardOutputLogger();
 
     static {
         METHOD_COMPARATOR = Comparator
