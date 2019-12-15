@@ -2,14 +2,13 @@ package de.eldoria.commandry;
 
 import de.eldoria.commandry.annotation.Alias;
 import de.eldoria.commandry.annotation.Command;
-import de.eldoria.commandry.context.CommandContext;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.fail;
 
 public class AliasesTest {
-    private Commandry<SimpleCommandContext> commandry;
+    private Commandry<CommandContext> commandry;
 
     @BeforeEach
     void setUp() {
@@ -34,8 +33,8 @@ public class AliasesTest {
         commandry.runCommand(context("f"), "f");
     }
 
-    private SimpleCommandContext context(String command) {
-        return new SimpleCommandContext(command);
+    private CommandContext context(String command) {
+        return new CommandContext(command);
     }
 
     public static class TestCommandClass {
@@ -46,25 +45,27 @@ public class AliasesTest {
 
         @Command("abc")
         @Alias("a")
-        public void abc(SimpleCommandContext context) {
-            if (!context.getCommand().equals("a") && !context.getCommand().equals("abc")) {
+        public void abc(CommandContext context) {
+            if (!context.command.equals("a") && !context.command.equals("abc")) {
                 fail();
             }
         }
 
         @Command("def")
         @Alias("d,e,f")
-        public void def(SimpleCommandContext context) {
-            if (!"def".contains(context.getCommand())) {
+        public void def(CommandContext context) {
+            if (!"def".contains(context.command)) {
                 fail();
             }
         }
     }
 
-    public static class SimpleCommandContext extends CommandContext<SimpleCommandContext> {
+    public static class CommandContext {
 
-        public SimpleCommandContext(String command) {
-            super(command);
+        private final String command;
+
+        public CommandContext(String command) {
+            this.command = command;
         }
     }
 }

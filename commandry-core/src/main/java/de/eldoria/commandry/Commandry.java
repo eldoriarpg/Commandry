@@ -2,7 +2,6 @@ package de.eldoria.commandry;
 
 import de.eldoria.commandry.annotation.Alias;
 import de.eldoria.commandry.annotation.Command;
-import de.eldoria.commandry.context.CommandContext;
 import de.eldoria.commandry.exception.CommandException;
 import de.eldoria.commandry.exception.CommandExecutionException;
 import de.eldoria.commandry.tree.CommandNode;
@@ -30,7 +29,7 @@ import java.util.stream.Collectors;
  *
  * @param <C> the type of the context.
  */
-public class Commandry<C extends CommandContext<C>> {
+public class Commandry<C> {
     private static final Comparator<Pair<Method, Command>> METHOD_COMPARATOR;
     private static final String NO_MATCHING_COMMAND_FOUND = "No matching command found.";
     private final RootNode root = new RootNode();

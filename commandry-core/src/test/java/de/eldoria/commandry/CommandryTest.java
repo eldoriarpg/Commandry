@@ -2,7 +2,6 @@ package de.eldoria.commandry;
 
 import de.eldoria.commandry.annotation.Command;
 import de.eldoria.commandry.annotation.Optional;
-import de.eldoria.commandry.context.CommandContext;
 import de.eldoria.commandry.exception.CommandExecutionException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -12,7 +11,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class CommandryTest {
-    private Commandry<SimpleCommandContext> commandry;
+    private Commandry<CommandContext> commandry;
 
     @BeforeEach
     void setUp() {
@@ -100,8 +99,8 @@ public class CommandryTest {
         commandry.runCommand(context(""), "cmd14 true 1337 -1337 13.37 -13.37");
     }
 
-    private SimpleCommandContext context(String command) {
-        return new SimpleCommandContext(command);
+    private CommandContext context(String command) {
+        return new CommandContext(command);
     }
 
     public static class TestCommandClass {
@@ -134,26 +133,26 @@ public class CommandryTest {
         }
 
         @Command("cmd5")
-        public void five(SimpleCommandContext context) {
-            assertEquals("cmd5", context.getCommand());
+        public void five(CommandContext context) {
+            assertEquals("cmd5", context.command);
         }
 
         @Command("cmd6")
-        public void six(SimpleCommandContext context, String required) {
-            assertEquals("cmd6", context.getCommand());
+        public void six(CommandContext context, String required) {
+            assertEquals("cmd6", context.command);
             assertEquals("required", required);
         }
 
         @Command("cmd7")
-        public void seven(SimpleCommandContext context, String required, @Optional("opt") String optString) {
-            assertEquals("cmd7", context.getCommand());
+        public void seven(CommandContext context, String required, @Optional("opt") String optString) {
+            assertEquals("cmd7", context.command);
             assertEquals("required", required);
             assertEquals("opt", optString);
         }
 
         @Command("cmd8")
-        public void eight(SimpleCommandContext context, String required, @Optional("opt") String optString) {
-            assertEquals("cmd8", context.getCommand());
+        public void eight(CommandContext context, String required, @Optional("opt") String optString) {
+            assertEquals("cmd8", context.command);
             assertEquals("required", required);
             assertEquals("notOpt", optString);
         }
@@ -196,10 +195,12 @@ public class CommandryTest {
         }
     }
 
-    public static class SimpleCommandContext extends CommandContext<SimpleCommandContext> {
+    public static class CommandContext {
 
-        public SimpleCommandContext(String command) {
-            super(command);
+        private final String command;
+
+        public CommandContext(String command) {
+            this.command = command;
         }
     }
 }
