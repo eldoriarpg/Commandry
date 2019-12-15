@@ -4,6 +4,7 @@ import de.eldoria.commandry.annotation.Alias;
 import de.eldoria.commandry.annotation.Command;
 import de.eldoria.commandry.exception.CommandException;
 import de.eldoria.commandry.exception.CommandExecutionException;
+import de.eldoria.commandry.parser.Parser;
 import de.eldoria.commandry.tree.CommandNode;
 import de.eldoria.commandry.tree.Node;
 import de.eldoria.commandry.tree.RootNode;
@@ -76,15 +77,8 @@ public class Commandry<C> {
         }
     }
 
-    /**
-     * This method gets called internally when a command is registered. This can be used
-     * for systems that require an additional registration. In the default implementation,
-     * nothing will happen.
-     *
-     * @param command the command string that got registered.
-     */
-    protected void onCommandRegistration(String command) {
-
+    public <T> void registerParser(Parser<T> parser, Class<T> clazz) {
+        argumentParser.registerParser(parser, clazz);
     }
 
     private void execute(StringReader reader, C context) {
@@ -119,7 +113,6 @@ public class Commandry<C> {
     private void addCommand(Method method, Object commandHandler, String command, Queue<String> parents, Node parent) {
         if (parents.isEmpty()) {
             addChild(method, commandHandler, command, parent);
-            onCommandRegistration(command);
         } else {
             var next = parents.poll();
             var node = parent.find(next);

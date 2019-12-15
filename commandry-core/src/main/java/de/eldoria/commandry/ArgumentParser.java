@@ -1,6 +1,7 @@
 package de.eldoria.commandry;
 
 import de.eldoria.commandry.annotation.Optional;
+import de.eldoria.commandry.parser.Parser;
 import de.eldoria.commandry.parser.ParserManager;
 import de.eldoria.commandry.parser.SharedParsers;
 import de.eldoria.commandry.util.reflection.ReflectionUtils;
@@ -57,5 +58,9 @@ public class ArgumentParser {
         } else {
             throw new IllegalStateException("No parser for optional parameter found."); // TODO
         }
+    }
+
+    public <T> void registerParser(Parser<T> parser, Class<T> clazz) {
+        customParserManager.registerParser(parser, clazz);
     }
 }
