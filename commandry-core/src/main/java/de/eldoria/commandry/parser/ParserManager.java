@@ -1,5 +1,8 @@
 package de.eldoria.commandry.parser;
 
+/**
+ * This interface is meant to manage parsers for multiple target types.
+ */
 public interface ParserManager {
 
     /**

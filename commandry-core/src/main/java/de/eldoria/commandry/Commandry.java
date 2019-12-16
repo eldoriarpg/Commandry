@@ -4,6 +4,7 @@ import de.eldoria.commandry.annotation.Alias;
 import de.eldoria.commandry.annotation.Command;
 import de.eldoria.commandry.exception.CommandException;
 import de.eldoria.commandry.exception.CommandExecutionException;
+import de.eldoria.commandry.exception.CommandRegistrationException;
 import de.eldoria.commandry.tree.CommandNode;
 import de.eldoria.commandry.tree.Node;
 import de.eldoria.commandry.tree.RootNode;
@@ -37,7 +38,7 @@ public class Commandry<C> {
 
     static {
         METHOD_COMPARATOR = Comparator
-                .comparing((Pair<Method, Command> pair) -> pair.getSecond().parents())
+                .comparing((Pair<Method, Command> pair) -> pair.getSecond().ascendants())
                 .thenComparing(pair -> pair.getSecond().value());
     }
 
@@ -56,6 +57,12 @@ public class Commandry<C> {
     /**
      * Registers a new class as command handler. Each public instance method
      * which is annotated with {@link Command} will be loaded as command.
+     * To register a class as command handler, a no-parameter constructor must be
+     * accessible (means {@code public}. The value given by {@link Command#value()} has
+     * to be a string containing non-whitespace characters only.
+     * The value given by {@link Command#ascendants()} has to be a string which is either blank
+     * or contains whitespace-separated commands that are already registered or defined in the same class.
+     * Throws a {@link CommandRegistrationException} if the command couldn't be registered.
      *
      * @param clazz the class to register as command handler.
      * @param <T>   the type of the class.
@@ -67,12 +74,12 @@ public class Commandry<C> {
         var commandMethods = getCommandMethods(commandHandler);
         for (var pair : commandMethods) {
             LinkedList<String> parents;
-            if (pair.getSecond().parents().isBlank()) {
+            if (pair.getSecond().ascendants().isBlank()) {
                 parents = new LinkedList<>();
             } else {
-                parents = StringUtils.splitString(pair.getSecond().parents(), " ", LinkedList::new);
+                parents = StringUtils.splitString(pair.getSecond().ascendants(), " ", LinkedList::new);
             }
-            addCommand(pair.getFirst(), commandHandler, pair.getSecond().value(), parents, root);
+            addCommand(pair.getFirst(), commandHandler, pair.getSecond(), parents, root);
         }
     }
 
@@ -87,6 +94,14 @@ public class Commandry<C> {
         return argumentParser;
     }
 
+    /**
+     * Executes a command given as a string reader with a context.
+     * The method will read from the raw input to determine which command is called and
+     * which arguments are provided.
+     *
+     * @param reader  the reader holding the raw command input.
+     * @param context the context of the command.
+     */
     private void execute(StringReader reader, C context) {
         checkEmptyInput(reader);
         Node currentCommand = null;
@@ -94,13 +109,16 @@ public class Commandry<C> {
         while (reader.canRead()) {
             var word = reader.readWord();
             if (currentCommand == null) {
+                // only executed at the beginning, when looking for the top level command
                 currentCommand = root.find(word)
                         .orElseThrow(noMatchingCommandFound(word));
                 parameterChain = currentCommand.getParameterChain();
                 offerAll(parameterChain, List.of(), context);
             } else if (parameterChain.acceptsFurtherArgument()) {
-                offerWisely(parameterChain, word);
+                // Optionals are prioritized before subcommands
+                parameterChain.offerArgument(argumentParser.parse(word, parameterChain.getNextType()));
             } else {
+                // No Optional argument required anymore, try to find a subcommand
                 currentCommand = currentCommand.find(word)
                         .orElseThrow(noMatchingCommandFound(word));
                 var argumentList = parameterChain.getArgumentList();
@@ -109,6 +127,7 @@ public class Commandry<C> {
             }
         }
         if (parameterChain.requiresFurtherArgument()) {
+            // Can't read anything else from the reader, but more arguments are required.
             reader.reset();
             throw new CommandExecutionException("Too few arguments.", reader.readRemaining());
         }
@@ -116,32 +135,68 @@ public class Commandry<C> {
         currentCommand.execute(parameterChain.getArgumentArray());
     }
 
-    private void addCommand(Method method, Object commandHandler, String command, Queue<String> parents, Node parent) {
+    /**
+     * Adds a command implemented by the given method of the given command handler to this commandry instance.
+     * If it is a top level command, means it has no ascendants, it will be added to the root node. Otherwise,
+     * it will be added its parent node. This is achieved by traversing all ascendants from the root
+     * node down to the parent. If an ascendant node is expected but not found, a
+     * {@link CommandRegistrationException} will be thrown.
+     *
+     * @param method         the method defining the command.
+     * @param commandHandler the command handler holding the method.
+     * @param command        the annotation of the method which declared it as a command.
+     * @param parents        the queue representation of all ascendant commands. Can be empty.
+     * @param ascendant      the ascendant command node.
+     */
+    private void addCommand(Method method, Object commandHandler, Command command,
+                            Queue<String> parents, Node ascendant) {
         if (parents.isEmpty()) {
-            addChild(method, commandHandler, command, parent);
+            addChild(method, commandHandler, command, ascendant);
         } else {
             var next = parents.poll();
-            var node = parent.find(next);
-            node.ifPresent(n -> addCommand(method, commandHandler, command, parents, n));
+            var node = ascendant.find(next)
+                    .orElseThrow(() -> new CommandRegistrationException("Missing parent node '" + next + "'", command));
+            addCommand(method, commandHandler, command, parents, node);
         }
     }
 
-    private void addChild(Method method, Object commandHandler, String command, Node parent) {
-        var node = new CommandNode(parent, command, method, commandHandler, argumentParser);
+    /**
+     * Adds the given method as node child to the given parent. To build the node,
+     * aliases of the command are read from the annotation, if available. If the annotation is
+     * available but the aliases can't be parsed, a {@link CommandRegistrationException} will be thrown.
+     *
+     * @param method         the method defining the command.
+     * @param commandHandler the command handler holding the method.
+     * @param command        the annotation of the method which declared it as a command.
+     * @param parent         the direct parent of the command.
+     */
+    private void addChild(Method method, Object commandHandler, Command command, Node parent) {
+        var commandName = command.value();
+        var node = new CommandNode(parent, commandName, method, commandHandler, argumentParser);
         var aliases = ReflectionUtils.getAnnotation(Alias.class, method);
         if (aliases.isPresent()) {
             // TODO validate Alias
             String aliasesString = aliases.get().value();
             if (aliasesString.contains(",")) {
-                parent.addChild(command, aliasesString.split("( )*,( )*"), node);
+                parent.addChild(commandName, aliasesString.split("( )*,( )*"), node);
             } else {
-                parent.addChild(command, aliasesString, node);
+                parent.addChild(commandName, aliasesString, node);
             }
         } else {
-            parent.addChild(command, node);
+            parent.addChild(commandName, node);
         }
     }
 
+    /**
+     * Returns a list of methods paired together with their command annotation. It is guaranteed that
+     * each pair has a valid method and a valid command annotation. There are no methods in this list
+     * which have no command annotation.
+     * All methods declared in the given command handler are checked and only filtered out if they don't
+     * have a {@link Command} annotation.
+     *
+     * @param commandHandler the command handler instance.
+     * @return a list of all command methods in the given command handler.
+     */
     private List<Pair<Method, Command>> getCommandMethods(Object commandHandler) {
         var clazz = commandHandler.getClass();
         return Arrays.stream(clazz.getDeclaredMethods())
@@ -151,6 +206,13 @@ public class Commandry<C> {
                 .collect(Collectors.toList());
     }
 
+    /**
+     * Pairs a method to itself and its {@link Command} annotation. If the annotation isn't available,
+     * {@code null} is returned.
+     *
+     * @param method the method to pair.
+     * @return the pair of the method with its command annotation.
+     */
     private Pair<Method, Command> methodToPair(Method method) {
         var a = ReflectionUtils.getAnnotation(Command.class, method);
         if (a.isEmpty()) return null;
@@ -158,24 +220,15 @@ public class Commandry<C> {
         return new Pair<>(method, a.get());
     }
 
-    private void offerWisely(ParameterChain chain, String input) {
-        if (!chain.getNextType().isPrimitive()) {
-            chain.offerArgument(argumentParser.parse(input, chain.getNextType()));
-        } else if (chain.getNextType() == boolean.class) {
-            chain.offerArgument(argumentParser.parse(input, boolean.class).booleanValue());
-        } else if (chain.getNextType() == int.class) {
-            chain.offerArgument(argumentParser.parse(input, int.class).intValue());
-        } else if (chain.getNextType() == long.class) {
-            chain.offerArgument(argumentParser.parse(input, long.class).longValue());
-        } else if (chain.getNextType() == byte.class) {
-            chain.offerArgument(argumentParser.parse(input, byte.class).byteValue());
-        } else if (chain.getNextType() == float.class) {
-            chain.offerArgument(argumentParser.parse(input, float.class).floatValue());
-        } else if (chain.getNextType() == double.class) {
-            chain.offerArgument(argumentParser.parse(input, double.class).doubleValue());
-        }
-    }
-
+    /**
+     * Offers a list of arguments to a parameter chain. This can be used if a new chain has to be
+     * satisfied, but arguments were already parsed. This method automatically detects if
+     * the context is required or not.
+     *
+     * @param targetChain   the parameter chain to fill with parsed arguments.
+     * @param currentOffers the available parsed arguments to offer.
+     * @param context       the context to offer, if required.
+     */
     private void offerAll(ParameterChain targetChain, List<Object> currentOffers, C context) {
         if (!targetChain.acceptsFurtherArgument() && currentOffers.isEmpty()) {
             return;

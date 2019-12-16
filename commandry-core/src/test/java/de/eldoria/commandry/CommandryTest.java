@@ -157,18 +157,18 @@ public class CommandryTest {
             assertEquals("notOpt", optString);
         }
 
-        @Command(value = "cmd9", parents = "cmd1")
+        @Command(value = "cmd9", ascendants = "cmd1")
         public void nine() {
             assertTrue(true);
         }
 
-        @Command(value = "cmd10", parents = "cmd1")
+        @Command(value = "cmd10", ascendants = "cmd1")
         public void ten(String ccc, @Optional("hello world") String text) {
             assertEquals("ccc", ccc);
             assertEquals("hello world", text);
         }
 
-        @Command(value = "cmd11", parents = "cmd2")
+        @Command(value = "cmd11", ascendants = "cmd2")
         public void eleven(String required, String otherRequired, String thirdRequired) {
             assertEquals("required", required);
             assertEquals("otherRequired", otherRequired);

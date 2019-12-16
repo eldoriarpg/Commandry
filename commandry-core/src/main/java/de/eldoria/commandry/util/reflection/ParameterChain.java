@@ -88,9 +88,29 @@ public class ParameterChain {
      */
     public void offerArgument(Object offer) {
         checkAcceptsFurtherArgument();
-        checkType(offer);
-        arguments[position] = offer;
-        position++;
+        if (!this.getNextType().isPrimitive()) {
+            checkType(offer);
+            arguments[position] = offer;
+            position++;
+        } else if (this.getNextType() == boolean.class) {
+            checkType(offer, Boolean.class);
+            this.offerBoolean((Boolean) offer);
+        } else if (this.getNextType() == int.class) {
+            checkType(offer, Integer.class);
+            this.offerInt((Integer) offer);
+        } else if (this.getNextType() == long.class) {
+            checkType(offer, Long.class);
+            this.offerLong((Long) offer);
+        } else if (this.getNextType() == byte.class) {
+            checkType(offer, Byte.class);
+            this.offerByte((Byte) offer);
+        } else if (this.getNextType() == float.class) {
+            checkType(offer, Float.class);
+            this.offerFloat((Float) offer);
+        } else if (this.getNextType() == double.class) {
+            checkType(offer, Double.class);
+            this.offerDouble((Double) offer);
+        }
     }
 
     /**
@@ -100,8 +120,7 @@ public class ParameterChain {
      *
      * @param offer the boolean to offer to the chain.
      */
-    public void offerArgument(boolean offer) {
-        checkAcceptsFurtherArgument();
+    private void offerBoolean(boolean offer) {
         arguments[position] = offer;
         position++;
     }
@@ -113,7 +132,7 @@ public class ParameterChain {
      *
      * @param offer the int to offer to the chain.
      */
-    public void offerArgument(int offer) {
+    private void offerInt(int offer) {
         checkAcceptsFurtherArgument();
         arguments[position] = offer;
         position++;
@@ -126,7 +145,20 @@ public class ParameterChain {
      *
      * @param offer the long to offer to the chain.
      */
-    public void offerArgument(long offer) {
+    private void offerLong(long offer) {
+        checkAcceptsFurtherArgument();
+        arguments[position] = offer;
+        position++;
+    }
+
+    /**
+     * Accepts a byte value if {@link #acceptsFurtherArgument()} returns true and
+     * {@link #getNextType()} equals {@code byte.class}. Is is used as boxing does
+     * not work when calling {@link #offerArgument(Object)}.
+     *
+     * @param offer the long to offer to the chain.
+     */
+    private void offerByte(byte offer) {
         checkAcceptsFurtherArgument();
         arguments[position] = offer;
         position++;
@@ -139,7 +171,7 @@ public class ParameterChain {
      *
      * @param offer the float to offer to the chain.
      */
-    public void offerArgument(float offer) {
+    private void offerFloat(float offer) {
         checkAcceptsFurtherArgument();
         arguments[position] = offer;
         position++;
@@ -152,7 +184,7 @@ public class ParameterChain {
      *
      * @param offer the double to offer to the chain.
      */
-    public void offerArgument(double offer) {
+    private void offerDouble(double offer) {
         checkAcceptsFurtherArgument();
         arguments[position] = offer;
         position++;
@@ -206,6 +238,12 @@ public class ParameterChain {
         }
     }
 
+    /**
+     * Checks whether the given object is of the next required type. If not,
+     * a {@link IllegalArgumentException} will be thrown.
+     *
+     * @param o the object to check.
+     */
     private void checkType(Object o) {
         if (!parameters[position].getType().isAssignableFrom(o.getClass())) {
             throw new IllegalArgumentException(String.format("Invalid type. Was %s but expected %s",
@@ -213,15 +251,28 @@ public class ParameterChain {
         }
     }
 
+    /**
+     * Checks whether the given object is of the expected type. If not,
+     * a {@link IllegalArgumentException} will be thrown.
+     * This is used to unbox primitive values correctly.
+     *
+     * @param o            the object to check.
+     * @param expectedType the expected type class.
+     */
+    private void checkType(Object o, Class<?> expectedType) {
+        if (o.getClass() != expectedType) {
+            throw new IllegalArgumentException(String.format("Invalid type. Was %s but expected %s",
+                    o.getClass(), parameters[position].getType()));
+        }
+    }
+
+    /**
+     * Checks whether a further argument is accepted by this parameter chain.
+     * If not, an {@link IndexOutOfBoundsException} will be thrown.
+     */
     private void checkAcceptsFurtherArgument() {
         if (!acceptsFurtherArgument()) {
             throw new IndexOutOfBoundsException("No more parameters allowed.");
         }
-    }
-
-    private Object parseOptional(Parameter parameter) {
-        var optional = ReflectionUtils.getAnnotation(Optional.class, parameter)
-                .orElseThrow(() -> new IllegalStateException("Optional annotation not found."));
-        return optional.value(); // TODO parse but somewhere else
     }
 }

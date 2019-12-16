@@ -7,8 +7,9 @@ import java.lang.annotation.Target;
 
 /**
  * The command annotation is used to mark methods which should be registered as
- * commands. The required {@code value} is the name of the command. The optional {@code parents}
- * defines all parent commands, comma-separated.
+ * commands. The required {@code value} is the name of the command. The optional {@code ascendants}
+ * defines all ascendant commands, comma-separated. They have to be sorted starting with the
+ * top level command to the command's direct parent command.
  */
 @Retention(RetentionPolicy.RUNTIME)
 @Target(ElementType.METHOD)
@@ -16,5 +17,5 @@ public @interface Command {
 
     String value();
 
-    String parents() default "";
+    String ascendants() default "";
 }

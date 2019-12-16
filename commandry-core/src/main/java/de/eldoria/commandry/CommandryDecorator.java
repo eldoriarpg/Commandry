@@ -3,7 +3,8 @@ package de.eldoria.commandry;
 /**
  * This class can be extended to modify or extend functionality
  * of {@link Commandry}.
- * @param <C>
+ *
+ * @param <C> the type of context of the decorated commandry instance.
  */
 public abstract class CommandryDecorator<C> extends Commandry<C> {
 

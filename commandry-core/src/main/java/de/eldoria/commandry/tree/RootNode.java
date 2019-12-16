@@ -10,7 +10,7 @@ import java.lang.reflect.Parameter;
  * added as child of this one.
  */
 public class RootNode extends Node {
-    private static final ParameterChain NULL_PARAMETER_CHAIN = new NullParameterChain();
+    private static final ParameterChain NULL_PARAMETER_CHAIN = new ParameterChain(new Parameter[0], null);
 
     /**
      * Creates a root node instance with its parent being null.
@@ -32,13 +32,5 @@ public class RootNode extends Node {
     @Override
     public ParameterChain getParameterChain() {
         return NULL_PARAMETER_CHAIN;
-    }
-
-    private static class NullParameterChain extends ParameterChain {
-
-        NullParameterChain() {
-            super(new Parameter[0], null);
-        }
-
     }
 }
