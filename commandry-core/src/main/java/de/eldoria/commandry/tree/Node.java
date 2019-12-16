@@ -23,6 +23,11 @@ public abstract class Node {
     private final Node parent;
     private final boolean executable = true; // TODO implement
 
+    /**
+     * Creates a new node with a given parent node.
+     *
+     * @param parent the parent of this node.
+     */
     public Node(Node parent) {
         this.children = new HashMap<>();
         this.childrenAliases = new HashMap<>();
@@ -40,10 +45,6 @@ public abstract class Node {
     public Optional<Node> find(String name) {
         String child = childrenAliases.get(name.toLowerCase());
         return Optional.ofNullable(children.get(child));
-    }
-
-    public Node getParent() {
-        return parent;
     }
 
     /**
@@ -95,9 +96,9 @@ public abstract class Node {
      * {@link #find(String)} can be used. The given aliases can be used as argument for
      * {@link #find(String)} and will all return the node.
      *
-     * @param name the name of the child.
+     * @param name    the name of the child.
      * @param aliases the array of aliases.
-     * @param node the child node.
+     * @param node    the child node.
      * @see #find(String)
      * @see #addChild(String, Node)
      * @see #addChild(String, String, Node)
@@ -118,9 +119,9 @@ public abstract class Node {
      * {@link #find(String)} can be used. The given aliases can be used as argument for
      * {@link #find(String)} and will all return the node.
      *
-     * @param name the name of the child.
+     * @param name  the name of the child.
      * @param alias the alias for the child.
-     * @param node the child node.
+     * @param node  the child node.
      * @see #find(String)
      * @see #addChild(String, Node)
      * @see #addChild(String, String[], Node)

@@ -1,6 +1,7 @@
 package de.eldoria.commandry;
 
 import de.eldoria.commandry.annotation.Optional;
+import de.eldoria.commandry.parser.DefaultParserManager;
 import de.eldoria.commandry.parser.Parser;
 import de.eldoria.commandry.parser.ParserManager;
 import de.eldoria.commandry.parser.SharedParsers;
@@ -17,11 +18,11 @@ import java.util.Map;
  * custom parsers.
  *
  * @see SharedParsers
- * @see ParserManager
+ * @see DefaultParserManager
  */
-public class ArgumentParser {
+public class ArgumentParser implements ParserManager {
     private final ParserManager sharedParsers = SharedParsers.getManager();
-    private final ParserManager customParserManager = new ParserManager();
+    private final ParserManager customParserManager = new DefaultParserManager();
 
     /**
      * Parses all optional parameter values from a method and returns them in a map. That way,
@@ -50,17 +51,31 @@ public class ArgumentParser {
      * @param <T>   the type.
      * @return an object of the requested type.
      */
+    @Override
     public <T> T parse(String input, Class<T> type) {
         if (sharedParsers.hasParserFor(type)) {
             return sharedParsers.parse(input, type);
         } else if (customParserManager.hasParserFor(type)) {
             return customParserManager.parse(input, type);
         } else {
-            throw new IllegalStateException("No parser for optional parameter found."); // TODO
+            throw new IllegalStateException("No parser for this type parameter found."); // TODO
         }
     }
 
+    /**
+     * Registers a parser for a specific class.
+     *
+     * @param parser the parser instance to register.
+     * @param clazz  the class the parser should parse.
+     * @param <T>    the type the parser should parse.
+     */
+    @Override
     public <T> void registerParser(Parser<T> parser, Class<T> clazz) {
         customParserManager.registerParser(parser, clazz);
+    }
+
+    @Override
+    public boolean hasParserFor(Class<?> clazz) {
+        return sharedParsers.hasParserFor(clazz) || customParserManager.hasParserFor(clazz);
     }
 }

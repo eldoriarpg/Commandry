@@ -5,7 +5,7 @@ package de.eldoria.commandry.parser;
  * and Strings.
  */
 public final class SharedParsers {
-    private static final ParserManager SHARED_PARSERS_MANAGER = new ParserManager();
+    private static final ParserManager SHARED_PARSERS_MANAGER = new DefaultParserManager();
 
     static {
         SHARED_PARSERS_MANAGER.registerParser(input -> input, String.class);

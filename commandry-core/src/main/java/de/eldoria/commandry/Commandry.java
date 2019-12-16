@@ -4,7 +4,6 @@ import de.eldoria.commandry.annotation.Alias;
 import de.eldoria.commandry.annotation.Command;
 import de.eldoria.commandry.exception.CommandException;
 import de.eldoria.commandry.exception.CommandExecutionException;
-import de.eldoria.commandry.parser.Parser;
 import de.eldoria.commandry.tree.CommandNode;
 import de.eldoria.commandry.tree.Node;
 import de.eldoria.commandry.tree.RootNode;
@@ -77,8 +76,15 @@ public class Commandry<C> {
         }
     }
 
-    public <T> void registerParser(Parser<T> parser, Class<T> clazz) {
-        argumentParser.registerParser(parser, clazz);
+    /**
+     * Returns the argument parser used by this commandry instance.
+     * Every changes to the returned object are reflected to this instance,
+     * so it can be used to register parsers.
+     *
+     * @return the argument parser used by this instance.
+     */
+    public ArgumentParser getArgumentParser() {
+        return argumentParser;
     }
 
     private void execute(StringReader reader, C context) {
