@@ -1,10 +1,8 @@
 package de.eldoria.commandry;
 
-import de.eldoria.commandry.context.CommandContext;
-
 import java.util.concurrent.CompletableFuture;
 
-public class AsyncCommandry<C extends CommandContext<C>> extends CommandryDecorator<C> {
+public class AsyncCommandry<C> extends CommandryDecorator<C> {
 
     public AsyncCommandry(Commandry<C> delegate) {
         super(delegate);
@@ -12,6 +10,6 @@ public class AsyncCommandry<C extends CommandContext<C>> extends CommandryDecora
 
     @Override
     public void runCommand(C context, String input) {
-        CompletableFuture.runAsync(() -> super.runCommand(context, input));
+        CompletableFuture.runAsync(() -> delegate.runCommand(context, input));
     }
 }
