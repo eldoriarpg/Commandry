@@ -4,7 +4,9 @@ import org.junit.jupiter.api.Test;
 
 import java.util.Optional;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class ReflectionUtilsTest {
 
@@ -92,13 +94,11 @@ class ReflectionUtilsTest {
 
     static class NotAnnotatedClass {
 
+        public static final int staticField = 0;
+        public final int nonStaticField = 1;
         public NotAnnotatedClass(int u) {
 
         }
-
-        public static final int staticField = 0;
-        public final int nonStaticField = 1;
-
 
         public static void staticMethod() {
 

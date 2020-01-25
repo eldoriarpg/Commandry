@@ -1,10 +1,9 @@
 package de.eldoria.commandry.util.reflection;
 
-import de.eldoria.commandry.ArgumentParser;
-
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
+import java.util.HashMap;
 import java.util.Map;
 
 /**
@@ -29,12 +28,12 @@ public final class CheckedInstanceMethod {
      * Creates the wrapped method object for the given method and an associated object.
      * The declaring class of the method must be assignable from the object class.
      *
-     * @param method   the method to wrap.
-     * @param instance the object instance to call the method with.
-     * @param parser   the parser to parse optional parameters with.
+     * @param method          the method to wrap.
+     * @param instance        the object instance to call the method with.
+     * @param parsedOptionals a map of already parsed optional parameters
      * @return the wrapped method.
      */
-    public static CheckedInstanceMethod of(Method method, Object instance, ArgumentParser parser) {
+    public static CheckedInstanceMethod of(Method method, Object instance, Map<String, Object> parsedOptionals) {
         if (!method.getDeclaringClass().isAssignableFrom(instance.getClass())) {
             throw new IllegalArgumentException("instance isn't of the type " + method.getDeclaringClass());
         }
@@ -46,7 +45,7 @@ public final class CheckedInstanceMethod {
             throw new IllegalArgumentException("method cannot be accessed. Is it public? " + method.getName());
         }
 
-        return new CheckedInstanceMethod(method, instance, parser.parseOptionals(method));
+        return new CheckedInstanceMethod(method, instance, new HashMap<>(parsedOptionals));
     }
 
     /**

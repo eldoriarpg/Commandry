@@ -1,13 +1,11 @@
 package de.eldoria.commandry.tree;
 
+import de.eldoria.commandry.util.reflection.CheckedInstanceMethod;
 import de.eldoria.commandry.util.reflection.ParameterChain;
 
-import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.Stack;
 
 /**
  * This class is used to build a tree of commands.
@@ -21,17 +19,25 @@ public abstract class Node {
     private final Map<String, Node> children;
     private final Map<String, String> childrenAliases;
     private final Node parent;
-    private final boolean executable = true; // TODO implement
 
     /**
      * Creates a new node with a given parent node.
      *
      * @param parent the parent of this node.
      */
-    public Node(Node parent) {
+    Node(Node parent) {
         this.children = new HashMap<>();
         this.childrenAliases = new HashMap<>();
         this.parent = parent;
+    }
+
+    /**
+     * Creates a node that can be used as root.
+     *
+     * @return a new node that can be used as root.
+     */
+    public static Node create() {
+        return new RootNode();
     }
 
     /**
@@ -58,7 +64,7 @@ public abstract class Node {
 
     /**
      * Returns the name of this node. The name may not be lowercase but as given when
-     * calling {@link #addChild(String, Node)}.
+     * calling {@link #addChild(String, CheckedInstanceMethod)}.
      *
      * @return the name of this node.
      */
@@ -79,14 +85,14 @@ public abstract class Node {
      * will replace the existing child. To check if a child with the given name is already added,
      * {@link #find(String)} can be used.
      *
-     * @param name the name of the child.
-     * @param node the child node.
+     * @param name   the name of the child.
+     * @param method the underlying command method of the child.
      * @see #find(String)
-     * @see #addChild(String, String[], Node)
-     * @see #addChild(String, String, Node)
+     * @see #addChild(String, String[], CheckedInstanceMethod)
+     * @see #addChild(String, String, CheckedInstanceMethod)
      */
-    public void addChild(String name, Node node) {
-        addChild(name, EMPTY_STRING_ARRAY, node);
+    public void addChild(String name, CheckedInstanceMethod method) {
+        addChild(name, EMPTY_STRING_ARRAY, method);
     }
 
     /**
@@ -98,13 +104,14 @@ public abstract class Node {
      *
      * @param name    the name of the child.
      * @param aliases the array of aliases.
-     * @param node    the child node.
+     * @param method  the underlying command method of the child.
      * @see #find(String)
-     * @see #addChild(String, Node)
-     * @see #addChild(String, String, Node)
+     * @see #addChild(String, CheckedInstanceMethod)
+     * @see #addChild(String, String, CheckedInstanceMethod)
      */
-    public void addChild(String name, String[] aliases, Node node) {
+    public void addChild(String name, String[] aliases, CheckedInstanceMethod method) {
         String lowerName = name.toLowerCase();
+        var node = new CommandDispatcherNode(this, name, method);
         children.put(lowerName, node);
         childrenAliases.put(lowerName, lowerName);
         for (String alias : aliases) {
@@ -119,44 +126,15 @@ public abstract class Node {
      * {@link #find(String)} can be used. The given aliases can be used as argument for
      * {@link #find(String)} and will all return the node.
      *
-     * @param name  the name of the child.
-     * @param alias the alias for the child.
-     * @param node  the child node.
+     * @param name   the name of the child.
+     * @param alias  the alias for the child.
+     * @param method the underlying command method of the child.
      * @see #find(String)
-     * @see #addChild(String, Node)
-     * @see #addChild(String, String[], Node)
+     * @see #addChild(String, CheckedInstanceMethod)
+     * @see #addChild(String, String[], CheckedInstanceMethod)
      */
-    public void addChild(String name, String alias, Node node) {
-        addChild(name, new String[] {alias}, node);
-    }
-
-    public List<String> getAvailableCommands() {
-        var list = new ArrayList<String>();
-        var before = buildUntilNode(getRoot());
-        var stack = new Stack<Node>();
-        stack.push(this);
-        while (!stack.empty()) {
-            var node = stack.pop();
-            list.add(before + " " + node.buildUntilNode(this));
-            node.children.forEach((k, v) -> stack.push(v));
-        }
-        return list;
-    }
-
-    private Node getRoot() {
-        if (parent == null) return this;
-        return parent.getRoot();
-    }
-
-    private String buildUntilNode(Node tempRoot) {
-        var before = new StringBuilder();
-        var p = this;
-        while (p.parent != tempRoot && p.parent != null) {
-            before.insert(0, ' ').insert(0, p.getName());
-            p = p.parent;
-        }
-        before.insert(0, ' ').insert(0, p.getName());
-        return before.toString();
+    public void addChild(String name, String alias, CheckedInstanceMethod method) {
+        addChild(name, new String[] {alias}, method);
     }
 
     @Override

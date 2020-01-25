@@ -18,19 +18,19 @@ public class AliasesTest {
 
     @Test
     void testUsingLabel() {
-        commandry.runCommand(context("abc"), "abc");
+        commandry.dispatchCommand(context("abc"), "abc");
     }
 
     @Test
     void testUsingAlias() {
-        commandry.runCommand(context("a"), "a");
+        commandry.dispatchCommand(context("a"), "a");
     }
 
     @Test
     void testMultipleAliases() {
-        commandry.runCommand(context("d"), "d");
-        commandry.runCommand(context("e"), "e");
-        commandry.runCommand(context("f"), "f");
+        commandry.dispatchCommand(context("d"), "d");
+        commandry.dispatchCommand(context("e"), "e");
+        commandry.dispatchCommand(context("f"), "f");
     }
 
     private CommandContext context(String command) {

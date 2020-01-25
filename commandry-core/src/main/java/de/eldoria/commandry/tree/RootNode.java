@@ -9,13 +9,13 @@ import java.lang.reflect.Parameter;
  * It's the root of the node tree which cannot be executed. A top level command should be
  * added as child of this one.
  */
-public class RootNode extends Node {
+class RootNode extends Node {
     private static final ParameterChain NULL_PARAMETER_CHAIN = new ParameterChain(new Parameter[0], null);
 
     /**
      * Creates a root node instance with its parent being null.
      */
-    public RootNode() {
+    RootNode() {
         super(null);
     }
 

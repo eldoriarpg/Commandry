@@ -5,12 +5,12 @@ import de.eldoria.commandry.annotation.Command;
 import de.eldoria.commandry.exception.CommandException;
 import de.eldoria.commandry.exception.CommandExecutionException;
 import de.eldoria.commandry.exception.CommandRegistrationException;
-import de.eldoria.commandry.tree.CommandNode;
+import de.eldoria.commandry.parser.ParserManager;
 import de.eldoria.commandry.tree.Node;
-import de.eldoria.commandry.tree.RootNode;
 import de.eldoria.commandry.util.Pair;
 import de.eldoria.commandry.util.StringReader;
 import de.eldoria.commandry.util.StringUtils;
+import de.eldoria.commandry.util.reflection.CheckedInstanceMethod;
 import de.eldoria.commandry.util.reflection.ParameterChain;
 import de.eldoria.commandry.util.reflection.ReflectionUtils;
 
@@ -22,6 +22,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Queue;
 import java.util.function.Supplier;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 /**
@@ -31,16 +32,18 @@ import java.util.stream.Collectors;
  * @param <C> the type of the context.
  */
 public class Commandry<C> {
+    private static final Pattern VALID_COMMAND_PATTERN = Pattern.compile("[^\\s,.<>]");
     private static final Comparator<Pair<Method, Command>> METHOD_COMPARATOR;
     private static final String NO_MATCHING_COMMAND_FOUND = "No matching command found.";
-    private final RootNode root = new RootNode();
-    private final ArgumentParser argumentParser = new ArgumentParser();
 
     static {
         METHOD_COMPARATOR = Comparator
                 .comparing((Pair<Method, Command> pair) -> pair.getSecond().ascendants())
                 .thenComparing(pair -> pair.getSecond().value());
     }
+
+    private final Node root = Node.create();
+    private final ArgumentParser argumentParser = new ArgumentParser();
 
     /**
      * Runs a command given by the input with the provided context. If the command
@@ -49,7 +52,7 @@ public class Commandry<C> {
      * @param context the context to delegate to the command handler.
      * @param input   the raw input string.
      */
-    public void runCommand(C context, String input) {
+    public void dispatchCommand(C context, String input) {
         var reader = new StringReader(input);
         execute(reader, context);
     }
@@ -77,6 +80,7 @@ public class Commandry<C> {
             if (pair.getSecond().ascendants().isBlank()) {
                 parents = new LinkedList<>();
             } else {
+                // as commandMethods is sorted, all parents are already registered
                 parents = StringUtils.splitString(pair.getSecond().ascendants(), " ", LinkedList::new);
             }
             addCommand(pair.getFirst(), commandHandler, pair.getSecond(), parents, root);
@@ -90,7 +94,7 @@ public class Commandry<C> {
      *
      * @return the argument parser used by this instance.
      */
-    public ArgumentParser getArgumentParser() {
+    public ParserManager getArgumentParser() {
         return argumentParser;
     }
 
@@ -172,18 +176,20 @@ public class Commandry<C> {
      */
     private void addChild(Method method, Object commandHandler, Command command, Node parent) {
         var commandName = command.value();
-        var node = new CommandNode(parent, commandName, method, commandHandler, argumentParser);
         var aliases = ReflectionUtils.getAnnotation(Alias.class, method);
+        var checkedMethod = CheckedInstanceMethod.of(method, commandHandler, argumentParser.parseOptionals(method));
         if (aliases.isPresent()) {
-            // TODO validate Alias
             String aliasesString = aliases.get().value();
             if (aliasesString.contains(",")) {
-                parent.addChild(commandName, aliasesString.split("( )*,( )*"), node);
+                String[] aliasArray = aliasesString.split("( )*,( )*");
+                Arrays.stream(aliasArray).forEach(this::checkCommandName);
+                parent.addChild(commandName, aliasArray, checkedMethod);
             } else {
-                parent.addChild(commandName, aliasesString, node);
+                checkCommandName(aliasesString);
+                parent.addChild(commandName, aliasesString, checkedMethod);
             }
         } else {
-            parent.addChild(commandName, node);
+            parent.addChild(commandName, checkedMethod);
         }
     }
 
@@ -215,9 +221,10 @@ public class Commandry<C> {
      */
     private Pair<Method, Command> methodToPair(Method method) {
         var a = ReflectionUtils.getAnnotation(Command.class, method);
-        if (a.isEmpty()) return null;
-        // TODO validate Command
-        return new Pair<>(method, a.get());
+        if (a.isEmpty()) return null; // no annotation found, ignore method
+        var command = a.get();
+        checkCommandName(command.value());
+        return new Pair<>(method, command);
     }
 
     /**
@@ -253,6 +260,12 @@ public class Commandry<C> {
     private void checkEmptyInput(StringReader reader) {
         if (!reader.canRead()) {
             throw new CommandExecutionException("No empty input allowed.", "");
+        }
+    }
+
+    private void checkCommandName(String name) {
+        if (!VALID_COMMAND_PATTERN.matcher(name).matches()) {
+            throw new CommandRegistrationException("Invalid command name: " + name);
         }
     }
 

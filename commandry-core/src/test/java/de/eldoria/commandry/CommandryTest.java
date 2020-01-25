@@ -21,82 +21,82 @@ public class CommandryTest {
 
     @Test
     void testEmptyInput() {
-        assertThrows(CommandExecutionException.class, () -> commandry.runCommand(context("anything"), ""));
+        assertThrows(CommandExecutionException.class, () -> commandry.dispatchCommand(context("anything"), ""));
     }
 
     @Test
     void testInvalidCommand() {
-        assertThrows(CommandExecutionException.class, () -> commandry.runCommand(context("anything"), "invalid"));
+        assertThrows(CommandExecutionException.class, () -> commandry.dispatchCommand(context("anything"), "invalid"));
     }
 
     @Test
     void testSingleCommandWithoutParameters() {
-        commandry.runCommand(context("cmd1"), "cmd1");
+        commandry.dispatchCommand(context("cmd1"), "cmd1");
     }
 
     @Test
     void testSingleCommandWithParameters() {
-        commandry.runCommand(context("cmd2"), "cmd2 required otherRequired");
+        commandry.dispatchCommand(context("cmd2"), "cmd2 required otherRequired");
     }
 
     @Test
     void testSingleCommandWithoutUsingOptionalParameter() {
-        commandry.runCommand(context("cmd3"), "cmd3");
+        commandry.dispatchCommand(context("cmd3"), "cmd3");
     }
 
     @Test
     void testSingleCommandWithUsingOptionalParameter() {
-        commandry.runCommand(context("cmd4"), "cmd4 notOpt");
+        commandry.dispatchCommand(context("cmd4"), "cmd4 notOpt");
     }
 
     @Test
     void testCommandWithContextParameterOnly() {
-        commandry.runCommand(context("cmd5"), "cmd5");
+        commandry.dispatchCommand(context("cmd5"), "cmd5");
     }
 
     @Test
     void testCommandWithContextAndRequiredParameter() {
-        commandry.runCommand(context("cmd6"), "cmd6 required");
+        commandry.dispatchCommand(context("cmd6"), "cmd6 required");
     }
 
     @Test
     void testCommandWithContextAndUsingOptionalParameter() {
-        commandry.runCommand(context("cmd7"), "cmd7 required");
+        commandry.dispatchCommand(context("cmd7"), "cmd7 required");
     }
 
     @Test
     void testCommandWithContextAndNotUsingOptionalParameter() {
-        commandry.runCommand(context("cmd8"), "cmd8 required notOpt");
+        commandry.dispatchCommand(context("cmd8"), "cmd8 required notOpt");
     }
 
     @Test
     void testSingleSubCommandOfSingleCommandWithoutParameters() {
-        commandry.runCommand(context("..."), "cmd1 cmd9");
+        commandry.dispatchCommand(context("..."), "cmd1 cmd9");
     }
 
     @Test
     void testSubCommandOfSingleCommandWithParameters() {
-        commandry.runCommand(context(""), "cmd1 cmd10 ccc");
+        commandry.dispatchCommand(context(""), "cmd1 cmd10 ccc");
     }
 
     @Test
     void testSubCommandWithParametersOfSingleCommandWithParameters() {
-        commandry.runCommand(context(""), "cmd2 required otherRequired cmd11 thirdRequired");
+        commandry.dispatchCommand(context(""), "cmd2 required otherRequired cmd11 thirdRequired");
     }
 
     @Test
     void testInputParsing() {
-        commandry.runCommand(context(""), "cmd12 12");
+        commandry.dispatchCommand(context(""), "cmd12 12");
     }
 
     @Test
     void testOptionalParsing() {
-        commandry.runCommand(context(""), "cmd13");
+        commandry.dispatchCommand(context(""), "cmd13");
     }
 
     @Test
     void testPrimitiveParsing() {
-        commandry.runCommand(context(""), "cmd14 true 1337 -1337 13.37 -13.37");
+        commandry.dispatchCommand(context(""), "cmd14 true 1337 -1337 13.37 -13.37");
     }
 
     private CommandContext context(String command) {
@@ -176,12 +176,12 @@ public class CommandryTest {
         }
 
         @Command(value = "cmd12")
-        public void twelve(Integer i){
+        public void twelve(Integer i) {
             assertEquals(12, i);
         }
 
         @Command(value = "cmd13")
-        public void thirteen(@Optional("13") Integer i){
+        public void thirteen(@Optional("13") Integer i) {
             assertEquals(13, i);
         }
 
