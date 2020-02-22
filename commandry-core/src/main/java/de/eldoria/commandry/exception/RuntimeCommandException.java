@@ -2,11 +2,7 @@ package de.eldoria.commandry.exception;
 
 import de.eldoria.commandry.annotation.Command;
 
-/**
- * This exception is used to represent a general exception caused by the
- * framework.
- */
-public class CommandException extends Exception {
+public class RuntimeCommandException extends RuntimeException {
     private Command command;
 
     /**
@@ -15,7 +11,7 @@ public class CommandException extends Exception {
      * @param message the exception message.
      * @param command the command which is involved.
      */
-    public CommandException(String message, Command command) {
+    public RuntimeCommandException(String message, Command command) {
         super(message);
         this.command = command;
     }
@@ -27,7 +23,7 @@ public class CommandException extends Exception {
      * @param cause   the throwable causing this exception.
      * @param command the command which is involved.
      */
-    public CommandException(String message, Throwable cause, Command command) {
+    public RuntimeCommandException(String message, Throwable cause, Command command) {
         super(message, cause);
         this.command = command;
     }
@@ -37,8 +33,18 @@ public class CommandException extends Exception {
      *
      * @param message the exception message.
      */
-    public CommandException(String message) {
+    public RuntimeCommandException(String message) {
         super(message);
+    }
+
+    /**
+     * Creates a new exception wrapping another one with the given message.
+     *
+     * @param message the exception message.
+     * @param cause   the throwable causing this exception.
+     */
+    public RuntimeCommandException(String message, Throwable cause) {
+        super(message, cause);
     }
 
     /**

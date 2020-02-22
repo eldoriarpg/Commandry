@@ -1,7 +1,7 @@
 package de.eldoria.commandry;
 
 import de.eldoria.commandry.annotation.Command;
-import de.eldoria.commandry.annotation.Optional;
+import de.eldoria.commandry.annotation.DefaultsTo;
 import de.eldoria.commandry.exception.CommandExecutionException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -30,72 +30,72 @@ public class CommandryTest {
     }
 
     @Test
-    void testSingleCommandWithoutParameters() {
+    void testSingleCommandWithoutParameters() throws CommandExecutionException {
         commandry.dispatchCommand(context("cmd1"), "cmd1");
     }
 
     @Test
-    void testSingleCommandWithParameters() {
+    void testSingleCommandWithParameters() throws CommandExecutionException {
         commandry.dispatchCommand(context("cmd2"), "cmd2 required otherRequired");
     }
 
     @Test
-    void testSingleCommandWithoutUsingOptionalParameter() {
+    void testSingleCommandWithoutUsingDefaultParameter() throws CommandExecutionException {
         commandry.dispatchCommand(context("cmd3"), "cmd3");
     }
 
     @Test
-    void testSingleCommandWithUsingOptionalParameter() {
+    void testSingleCommandWithUsingDefaultParameter() throws CommandExecutionException {
         commandry.dispatchCommand(context("cmd4"), "cmd4 notOpt");
     }
 
     @Test
-    void testCommandWithContextParameterOnly() {
+    void testCommandWithContextParameterOnly() throws CommandExecutionException {
         commandry.dispatchCommand(context("cmd5"), "cmd5");
     }
 
     @Test
-    void testCommandWithContextAndRequiredParameter() {
+    void testCommandWithContextAndRequiredParameter() throws CommandExecutionException {
         commandry.dispatchCommand(context("cmd6"), "cmd6 required");
     }
 
     @Test
-    void testCommandWithContextAndUsingOptionalParameter() {
+    void testCommandWithContextAndUsingDefaultParameter() throws CommandExecutionException {
         commandry.dispatchCommand(context("cmd7"), "cmd7 required");
     }
 
     @Test
-    void testCommandWithContextAndNotUsingOptionalParameter() {
+    void testCommandWithContextAndNotUsingDefaultParameter() throws CommandExecutionException {
         commandry.dispatchCommand(context("cmd8"), "cmd8 required notOpt");
     }
 
     @Test
-    void testSingleSubCommandOfSingleCommandWithoutParameters() {
+    void testSingleSubCommandOfSingleCommandWithoutParameters() throws CommandExecutionException {
         commandry.dispatchCommand(context("..."), "cmd1 cmd9");
     }
 
     @Test
-    void testSubCommandOfSingleCommandWithParameters() {
+    void testSubCommandOfSingleCommandWithParameters() throws CommandExecutionException {
         commandry.dispatchCommand(context(""), "cmd1 cmd10 ccc");
     }
 
     @Test
-    void testSubCommandWithParametersOfSingleCommandWithParameters() {
+    void testSubCommandWithParametersOfSingleCommandWithParameters() throws CommandExecutionException {
         commandry.dispatchCommand(context(""), "cmd2 required otherRequired cmd11 thirdRequired");
     }
 
     @Test
-    void testInputParsing() {
+    void testInputParsing() throws CommandExecutionException {
         commandry.dispatchCommand(context(""), "cmd12 12");
     }
 
     @Test
-    void testOptionalParsing() {
+    void testDefaultParsing() throws CommandExecutionException {
         commandry.dispatchCommand(context(""), "cmd13");
     }
 
     @Test
-    void testPrimitiveParsing() {
+    void testPrimitiveParsing() throws CommandExecutionException {
         commandry.dispatchCommand(context(""), "cmd14 true 1337 -1337 13.37 -13.37");
     }
 
@@ -122,13 +122,13 @@ public class CommandryTest {
 
         // run without using the parameter
         @Command("cmd3")
-        public void three(@Optional("opt") String optString) {
+        public void three(@DefaultsTo("opt") String optString) {
             assertEquals("opt", optString);
         }
 
         // run with using the parameter
         @Command("cmd4")
-        public void four(@Optional("opt") String optString) {
+        public void four(@DefaultsTo("opt") String optString) {
             assertEquals("notOpt", optString);
         }
 
@@ -144,14 +144,14 @@ public class CommandryTest {
         }
 
         @Command("cmd7")
-        public void seven(CommandContext context, String required, @Optional("opt") String optString) {
+        public void seven(CommandContext context, String required, @DefaultsTo("opt") String optString) {
             assertEquals("cmd7", context.command);
             assertEquals("required", required);
             assertEquals("opt", optString);
         }
 
         @Command("cmd8")
-        public void eight(CommandContext context, String required, @Optional("opt") String optString) {
+        public void eight(CommandContext context, String required, @DefaultsTo("opt") String optString) {
             assertEquals("cmd8", context.command);
             assertEquals("required", required);
             assertEquals("notOpt", optString);
@@ -163,7 +163,7 @@ public class CommandryTest {
         }
 
         @Command(value = "cmd10", ascendants = "cmd1")
-        public void ten(String ccc, @Optional("hello world") String text) {
+        public void ten(String ccc, @DefaultsTo("hello world") String text) {
             assertEquals("ccc", ccc);
             assertEquals("hello world", text);
         }
@@ -181,7 +181,7 @@ public class CommandryTest {
         }
 
         @Command(value = "cmd13")
-        public void thirteen(@Optional("13") Integer i) {
+        public void thirteen(@DefaultsTo("13") Integer i) {
             assertEquals(13, i);
         }
 

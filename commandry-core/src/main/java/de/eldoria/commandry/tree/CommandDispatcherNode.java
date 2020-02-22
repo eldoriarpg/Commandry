@@ -3,6 +3,7 @@ package de.eldoria.commandry.tree;
 import de.eldoria.commandry.util.reflection.CheckedInstanceMethod;
 import de.eldoria.commandry.util.reflection.ParameterChain;
 
+
 /**
  * This class represents a command dispatcher as a node in a node tree.
  * This is the mainly used node type in a node tree.

@@ -2,6 +2,7 @@ package de.eldoria.commandry;
 
 import de.eldoria.commandry.annotation.Alias;
 import de.eldoria.commandry.annotation.Command;
+import de.eldoria.commandry.exception.CommandExecutionException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -17,17 +18,17 @@ public class AliasesTest {
     }
 
     @Test
-    void testUsingLabel() {
+    void testUsingLabel() throws CommandExecutionException {
         commandry.dispatchCommand(context("abc"), "abc");
     }
 
     @Test
-    void testUsingAlias() {
+    void testUsingAlias() throws CommandExecutionException {
         commandry.dispatchCommand(context("a"), "a");
     }
 
     @Test
-    void testMultipleAliases() {
+    void testMultipleAliases() throws CommandExecutionException {
         commandry.dispatchCommand(context("d"), "d");
         commandry.dispatchCommand(context("e"), "e");
         commandry.dispatchCommand(context("f"), "f");

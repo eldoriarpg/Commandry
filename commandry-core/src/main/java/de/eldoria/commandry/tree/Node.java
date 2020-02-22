@@ -72,8 +72,8 @@ public abstract class Node {
 
     /**
      * Returns the parameter chain the command represented by this node requires.
-     * As there may be nodes which doesn't represent a command, invoking this method
-     * may result in unintended behaviour.
+     * It is guaranteed to return a non-null value, but using the returned instance
+     * may result in unexpected behaviour.
      *
      * @return the parameter chain of the represented command.
      */

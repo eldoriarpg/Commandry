@@ -1,12 +1,14 @@
 package de.eldoria.commandry.parser;
 
+import de.eldoria.commandry.exception.ArgumentParseException;
+
 import java.util.HashMap;
 import java.util.Map;
 
 /**
  * This class manages multiple parser instances.
  */
-public class DefaultParserManager implements ParserManager {
+public class SimpleParserManager implements ParserManager {
     private final Map<Class<?>, Parser<?>> parsers = new HashMap<>();
 
     @Override
@@ -19,12 +21,13 @@ public class DefaultParserManager implements ParserManager {
         return parsers.containsKey(clazz);
     }
 
+    @SuppressWarnings("unchecked")
     @Override
-    public <T> T parse(String input, Class<T> target) {
+    public <T> T parse(String input, Class<T> target) throws ArgumentParseException {
         Parser<?> parser = parsers.get(target);
         if (parser == null) {
-            // TODO
-            return null;
+            // TODO check all parameters on registration
+            throw new ArgumentParseException("No parser for the argument type found.", input);
         }
         return (T) parser.parse(input);
     }

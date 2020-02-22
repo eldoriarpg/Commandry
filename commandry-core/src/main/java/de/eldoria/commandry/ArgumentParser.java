@@ -1,10 +1,11 @@
 package de.eldoria.commandry;
 
-import de.eldoria.commandry.annotation.Optional;
-import de.eldoria.commandry.parser.DefaultParserManager;
+import de.eldoria.commandry.annotation.DefaultsTo;
+import de.eldoria.commandry.exception.ArgumentParseException;
 import de.eldoria.commandry.parser.Parser;
 import de.eldoria.commandry.parser.ParserManager;
 import de.eldoria.commandry.parser.SharedParsers;
+import de.eldoria.commandry.parser.SimpleParserManager;
 import de.eldoria.commandry.util.reflection.ReflectionUtils;
 
 import java.lang.reflect.Method;
@@ -18,27 +19,30 @@ import java.util.Map;
  * custom parsers.
  *
  * @see SharedParsers
- * @see DefaultParserManager
+ * @see SimpleParserManager
  */
 public class ArgumentParser implements ParserManager {
     private final ParserManager sharedParsers = SharedParsers.getManager();
-    private final ParserManager customParserManager = new DefaultParserManager();
+    private final ParserManager customParserManager = new SimpleParserManager();
 
     /**
-     * Parses all optional parameter values from a method and returns them in a map. That way,
-     * they don't need to be parsed multiple times. If an argument cannot be parsed, an error may
+     * Parses all parameter values annotated with {@link DefaultsTo} from a method and returns them in a map.
+     * That way, they don't need to be parsed multiple times. If an argument cannot be parsed, an error may
      * be thrown. The returned map is immutable and therefore cannot be modified.
      *
-     * @param method the method to parse the optional parameters for.
+     * @param method the method to parse the parameters annotated with {@link DefaultsTo} for.
      * @return a map view of the parsed optional arguments.
+     * @throws ArgumentParseException if an optional value couldn't be parsed.
      */
-    public Map<String, Object> parseOptionals(Method method) {
+    public Map<String, Object> parseDefaults(Method method) throws ArgumentParseException {
         var map = new HashMap<String, Object>();
         for (Parameter parameter : method.getParameters()) {
-            var annotation = ReflectionUtils.getAnnotation(Optional.class, parameter);
+            var annotation = ReflectionUtils.getAnnotation(DefaultsTo.class, parameter);
             var name = parameter.getName();
             var type = parameter.getType();
-            annotation.ifPresent(optional -> map.put(name, parse(optional.value(), type)));
+            if (annotation.isPresent()) {
+                map.put(name, parse(annotation.get().value(), type));
+            }
         }
         return Collections.unmodifiableMap(map);
     }
@@ -52,13 +56,13 @@ public class ArgumentParser implements ParserManager {
      * @return an object of the requested type.
      */
     @Override
-    public <T> T parse(String input, Class<T> type) {
+    public <T> T parse(String input, Class<T> type) throws ArgumentParseException {
         if (sharedParsers.hasParserFor(type)) {
             return sharedParsers.parse(input, type);
         } else if (customParserManager.hasParserFor(type)) {
             return customParserManager.parse(input, type);
         } else {
-            throw new IllegalStateException("No parser for this type parameter found."); // TODO
+            throw new ArgumentParseException("No parser for this type parameter found.", input); // TODO
         }
     }
 

@@ -1,6 +1,6 @@
 package de.eldoria.commandry.util.reflection;
 
-import de.eldoria.commandry.annotation.Optional;
+import de.eldoria.commandry.annotation.DefaultsTo;
 
 import java.lang.reflect.Parameter;
 import java.util.Arrays;
@@ -11,6 +11,7 @@ import java.util.List;
  * The {@code ParameterChain} is used to fill up all required (and also optional)
  * parameters a command requires. It also validates types and can set missing optional
  * arguments.
+ * Optional parameters are all parameters which have an Annotation {@link DefaultsTo}.
  *
  * @see Parameter
  */
@@ -32,7 +33,7 @@ public class ParameterChain {
         int paramsLength = parameters.length;
         int optIndex = paramsLength;
         for (int i = optIndex - 1; i >= 0; i--) {
-            if (ReflectionUtils.getAnnotation(Optional.class, parameters[i]).isPresent()) {
+            if (ReflectionUtils.getAnnotation(DefaultsTo.class, parameters[i]).isPresent()) {
                 optIndex = i;
             } else {
                 break;
@@ -232,7 +233,7 @@ public class ParameterChain {
         if (requiresFurtherArgument()) {
             throw new IllegalStateException("Not all required parameters are satisfied.");
         }
-        var parsedOptionals = method.getParsedOptionals();
+        var parsedOptionals = method.getParsedDefaults();
         for (int i = position; i < parameters.length; i++) {
             arguments[i] = parsedOptionals.get(parameters[i].getName());
         }

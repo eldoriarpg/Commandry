@@ -2,7 +2,7 @@ package de.eldoria.commandry;
 
 import de.eldoria.commandry.annotation.Alias;
 import de.eldoria.commandry.annotation.Command;
-import de.eldoria.commandry.exception.CommandException;
+import de.eldoria.commandry.exception.ArgumentParseException;
 import de.eldoria.commandry.exception.CommandExecutionException;
 import de.eldoria.commandry.exception.CommandRegistrationException;
 import de.eldoria.commandry.parser.ParserManager;
@@ -51,8 +51,9 @@ public class Commandry<C> {
      *
      * @param context the context to delegate to the command handler.
      * @param input   the raw input string.
+     * @throws CommandExecutionException if the command couldn't be dispatched successfully.
      */
-    public void dispatchCommand(C context, String input) {
+    public void dispatchCommand(C context, String input) throws CommandExecutionException {
         var reader = new StringReader(input);
         execute(reader, context);
     }
@@ -65,14 +66,13 @@ public class Commandry<C> {
      * to be a string containing non-whitespace characters only.
      * The value given by {@link Command#ascendants()} has to be a string which is either blank
      * or contains whitespace-separated commands that are already registered or defined in the same class.
-     * Throws a {@link CommandRegistrationException} if the command couldn't be registered.
      *
      * @param clazz the class to register as command handler.
      * @param <T>   the type of the class.
      */
     public final <T> void registerCommands(Class<T> clazz) {
         var commandHandler = ReflectionUtils.newInstance(clazz)
-                .orElseThrow(() -> new CommandException("Failed to register commands for class %s. "
+                .orElseThrow(() -> new CommandRegistrationException("Failed to register commands for class %s. "
                         + "No instance could be created. Is the default constructor public?"));
         var commandMethods = getCommandMethods(commandHandler);
         for (var pair : commandMethods) {
@@ -83,7 +83,11 @@ public class Commandry<C> {
                 // as commandMethods is sorted, all parents are already registered
                 parents = StringUtils.splitString(pair.getSecond().ascendants(), " ", LinkedList::new);
             }
-            addCommand(pair.getFirst(), commandHandler, pair.getSecond(), parents, root);
+            try {
+                addCommand(pair.getFirst(), commandHandler, pair.getSecond(), parents, root);
+            } catch (ArgumentParseException e) {
+                throw new CommandRegistrationException("Couldn't register command.", e);
+            }
         }
     }
 
@@ -106,7 +110,7 @@ public class Commandry<C> {
      * @param reader  the reader holding the raw command input.
      * @param context the context of the command.
      */
-    private void execute(StringReader reader, C context) {
+    private void execute(StringReader reader, C context) throws CommandExecutionException {
         checkEmptyInput(reader);
         Node currentCommand = null;
         ParameterChain parameterChain = null;
@@ -119,10 +123,10 @@ public class Commandry<C> {
                 parameterChain = currentCommand.getParameterChain();
                 offerAll(parameterChain, List.of(), context);
             } else if (parameterChain.acceptsFurtherArgument()) {
-                // Optionals are prioritized before subcommands
+                // Defaults are prioritized before subcommands
                 parameterChain.offerArgument(argumentParser.parse(word, parameterChain.getNextType()));
             } else {
-                // No Optional argument required anymore, try to find a subcommand
+                // No default argument required anymore, try to find a subcommand
                 currentCommand = currentCommand.find(word)
                         .orElseThrow(noMatchingCommandFound(word));
                 var argumentList = parameterChain.getArgumentList();
@@ -130,6 +134,7 @@ public class Commandry<C> {
                 offerAll(parameterChain, argumentList, context);
             }
         }
+        Objects.requireNonNull(parameterChain, "parameterChain must not be null");
         if (parameterChain.requiresFurtherArgument()) {
             // Can't read anything else from the reader, but more arguments are required.
             reader.reset();
@@ -153,7 +158,7 @@ public class Commandry<C> {
      * @param ascendant      the ascendant command node.
      */
     private void addCommand(Method method, Object commandHandler, Command command,
-                            Queue<String> parents, Node ascendant) {
+                            Queue<String> parents, Node ascendant) throws ArgumentParseException {
         if (parents.isEmpty()) {
             addChild(method, commandHandler, command, ascendant);
         } else {
@@ -174,10 +179,11 @@ public class Commandry<C> {
      * @param command        the annotation of the method which declared it as a command.
      * @param parent         the direct parent of the command.
      */
-    private void addChild(Method method, Object commandHandler, Command command, Node parent) {
+    private void addChild(Method method, Object commandHandler, Command command, Node parent)
+            throws ArgumentParseException {
         var commandName = command.value();
         var aliases = ReflectionUtils.getAnnotation(Alias.class, method);
-        var checkedMethod = CheckedInstanceMethod.of(method, commandHandler, argumentParser.parseOptionals(method));
+        var checkedMethod = CheckedInstanceMethod.of(method, commandHandler, argumentParser.parseDefaults(method));
         if (aliases.isPresent()) {
             String aliasesString = aliases.get().value();
             if (aliasesString.contains(",")) {
@@ -257,7 +263,7 @@ public class Commandry<C> {
         }
     }
 
-    private void checkEmptyInput(StringReader reader) {
+    private void checkEmptyInput(StringReader reader) throws CommandExecutionException {
         if (!reader.canRead()) {
             throw new CommandExecutionException("No empty input allowed.", "");
         }

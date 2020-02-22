@@ -16,12 +16,12 @@ import java.util.Map;
 public final class CheckedInstanceMethod {
     private final Method method;
     private final Object instance;
-    private final Map<String, Object> parsedOptionals;
+    private final Map<String, Object> parsedDefaults;
 
-    private CheckedInstanceMethod(Method method, Object instance, Map<String, Object> parsedOptionals) {
+    private CheckedInstanceMethod(Method method, Object instance, Map<String, Object> parsedDefaults) {
         this.method = method;
         this.instance = instance;
-        this.parsedOptionals = parsedOptionals;
+        this.parsedDefaults = parsedDefaults;
     }
 
     /**
@@ -101,7 +101,7 @@ public final class CheckedInstanceMethod {
      *
      * @return a map of optional arguments.
      */
-    public Map<String, Object> getParsedOptionals() {
-        return parsedOptionals;
+    public Map<String, Object> getParsedDefaults() {
+        return parsedDefaults;
     }
 }

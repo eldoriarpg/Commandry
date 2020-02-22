@@ -1,5 +1,7 @@
 package de.eldoria.commandry.parser;
 
+import de.eldoria.commandry.exception.ArgumentParseException;
+
 /**
  * This interface is meant to manage parsers for multiple target types.
  */
@@ -31,6 +33,7 @@ public interface ParserManager {
      * @param target the type class to get the parser for.
      * @param <T>    the type to return.
      * @return the parsed object of the requested type.
+     * @throws ArgumentParseException if the argument couldn't be parsed to an instance of the expected type.
      */
-    <T> T parse(String input, Class<T> target);
+    <T> T parse(String input, Class<T> target) throws ArgumentParseException;
 }
