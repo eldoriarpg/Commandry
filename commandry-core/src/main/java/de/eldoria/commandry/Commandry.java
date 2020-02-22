@@ -14,6 +14,7 @@ import de.eldoria.commandry.util.reflection.CheckedInstanceMethod;
 import de.eldoria.commandry.util.reflection.ParameterChain;
 import de.eldoria.commandry.util.reflection.ReflectionUtils;
 
+import java.lang.annotation.Annotation;
 import java.lang.reflect.Method;
 import java.util.Arrays;
 import java.util.Comparator;
@@ -21,6 +22,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Objects;
 import java.util.Queue;
+import java.util.function.Consumer;
 import java.util.function.Supplier;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -74,7 +76,7 @@ public class Commandry<C> {
         var commandHandler = ReflectionUtils.newInstance(clazz)
                 .orElseThrow(() -> new CommandRegistrationException("Failed to register commands for class %s. "
                         + "No instance could be created. Is the default constructor public?"));
-        var commandMethods = getCommandMethods(commandHandler);
+        var commandMethods = getCommandMethods(clazz);
         for (var pair : commandMethods) {
             LinkedList<String> parents;
             if (pair.getSecond().ascendants().isBlank()) {
@@ -134,7 +136,7 @@ public class Commandry<C> {
                 offerAll(parameterChain, argumentList, context);
             }
         }
-        Objects.requireNonNull(parameterChain, "parameterChain must not be null");
+        Objects.requireNonNull(parameterChain, "parameterChain must not be null"); // shouldn't happen
         if (parameterChain.requiresFurtherArgument()) {
             // Can't read anything else from the reader, but more arguments are required.
             reader.reset();
@@ -206,31 +208,31 @@ public class Commandry<C> {
      * All methods declared in the given command handler are checked and only filtered out if they don't
      * have a {@link Command} annotation.
      *
-     * @param commandHandler the command handler instance.
+     * @param clazz the command handler class.
      * @return a list of all command methods in the given command handler.
      */
-    private List<Pair<Method, Command>> getCommandMethods(Object commandHandler) {
-        var clazz = commandHandler.getClass();
+    private List<Pair<Method, Command>> getCommandMethods(Class<?> clazz) {
         return Arrays.stream(clazz.getDeclaredMethods())
-                .map(this::methodToPair)
+                .map(method -> methodToPair(method, Command.class, command -> checkCommandName(command.value())))
                 .filter(Objects::nonNull)
                 .sorted(METHOD_COMPARATOR)
                 .collect(Collectors.toList());
     }
 
     /**
-     * Pairs a method to itself and its {@link Command} annotation. If the annotation isn't available,
-     * {@code null} is returned.
+     * Pairs a method to itself and its specified annotation. If the annotation isn't available
+     * on that method, {@code null} is returned.
      *
      * @param method the method to pair.
-     * @return the pair of the method with its command annotation.
+     * @return the pair of the method with its annotation.
      */
-    private Pair<Method, Command> methodToPair(Method method) {
-        var a = ReflectionUtils.getAnnotation(Command.class, method);
+    private <A extends Annotation> Pair<Method, A> methodToPair(Method method, Class<A> annotationClass,
+                                                                Consumer<A> annotationConsumer) {
+        var a = ReflectionUtils.getAnnotation(annotationClass, method);
         if (a.isEmpty()) return null; // no annotation found, ignore method
-        var command = a.get();
-        checkCommandName(command.value());
-        return new Pair<>(method, command);
+        var annotation = a.get();
+        annotationConsumer.accept(annotation);
+        return new Pair<>(method, annotation);
     }
 
     /**
