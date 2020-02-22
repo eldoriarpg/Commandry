@@ -32,7 +32,7 @@ import java.util.stream.Collectors;
  * @param <C> the type of the context.
  */
 public class Commandry<C> {
-    private static final Pattern VALID_COMMAND_PATTERN = Pattern.compile("[^\\s,.<>]");
+    private static final Pattern VALID_COMMAND_PATTERN = Pattern.compile("[^\\s,.<>\\[\\]{}]+");
     private static final Comparator<Pair<Method, Command>> METHOD_COMPARATOR;
     private static final String NO_MATCHING_COMMAND_FOUND = "No matching command found.";
 
