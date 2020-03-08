@@ -41,7 +41,12 @@ public class ArgumentParser implements ParserManager {
             var name = parameter.getName();
             var type = parameter.getType();
             if (annotation.isPresent()) {
-                map.put(name, parse(annotation.get().value(), type));
+                var value = annotation.get().value();
+                if (value.equals("null")) {
+                    map.put(name, null);
+                } else {
+                    map.put(name, parse(annotation.get().value(), type));
+                }
             }
         }
         return Collections.unmodifiableMap(map);
