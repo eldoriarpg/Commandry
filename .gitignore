@@ -1,0 +1,9 @@
+# IntelliJ files
+.idea/
+*.iml
+
+# Java specific files
+**/**.class
+
+# Maven specific
+target/
