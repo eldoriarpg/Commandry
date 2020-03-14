@@ -28,12 +28,12 @@ public final class CheckedInstanceMethod {
      * Creates the wrapped method object for the given method and an associated object.
      * The declaring class of the method must be assignable from the object class.
      *
-     * @param method          the method to wrap.
-     * @param instance        the object instance to call the method with.
-     * @param parsedOptionals a map of already parsed optional parameters
+     * @param method         the method to wrap.
+     * @param instance       the object instance to call the method with.
+     * @param parsedDefaults a map of already parsed optional parameters
      * @return the wrapped method.
      */
-    public static CheckedInstanceMethod of(Method method, Object instance, Map<String, Object> parsedOptionals) {
+    public static CheckedInstanceMethod of(Method method, Object instance, Map<String, Object> parsedDefaults) {
         if (!method.getDeclaringClass().isAssignableFrom(instance.getClass())) {
             throw new IllegalArgumentException("instance isn't of the type " + method.getDeclaringClass());
         }
@@ -45,7 +45,7 @@ public final class CheckedInstanceMethod {
             throw new IllegalArgumentException("method cannot be accessed. Is it public? " + method.getName());
         }
 
-        return new CheckedInstanceMethod(method, instance, new HashMap<>(parsedOptionals));
+        return new CheckedInstanceMethod(method, instance, new HashMap<>(parsedDefaults));
     }
 
     /**
