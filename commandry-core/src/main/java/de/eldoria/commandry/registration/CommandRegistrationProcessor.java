@@ -26,12 +26,14 @@ import java.util.stream.Collectors;
 /**
  * This class handles the registration of commands defined in one single class.
  * It can be extended to modify the registration behaviour.
+ *
+ * @param <T> the type of the command handler instance.
  */
-public class CommandRegistrationProcessor {
+public class CommandRegistrationProcessor<T> {
     private static final Pattern VALID_COMMAND_PATTERN = Pattern.compile("[^\\s,.<>\\[\\]{}]+");
     private static final Comparator<Pair<Method, Command>> METHOD_COMPARATOR;
-    private final Class<?> commandHandlerClass;
-    private final Object commandHandlerInstance;
+    private final Class<T> commandHandlerClass;
+    private final T commandHandlerInstance;
     private final ArgumentParser parser;
 
     static {
@@ -47,7 +49,7 @@ public class CommandRegistrationProcessor {
      * @param commandHandlerInstance the class of the command handler.
      * @param parser                 the argument parser for default values.
      */
-    public CommandRegistrationProcessor(Class<?> commandHandlerClass, Object commandHandlerInstance,
+    public CommandRegistrationProcessor(Class<T> commandHandlerClass, T commandHandlerInstance,
                                         ArgumentParser parser) {
         this.commandHandlerClass = commandHandlerClass;
         this.commandHandlerInstance = commandHandlerInstance;
@@ -70,7 +72,7 @@ public class CommandRegistrationProcessor {
                 parents = StringUtils.splitString(pair.getSecond().ascendants(), " ", LinkedList::new);
             }
             try {
-                addCommand(pair.getFirst(), commandHandlerInstance, pair.getSecond(), parents, root);
+                addCommand(pair.getFirst(), pair.getSecond(), parents, root);
             } catch (ArgumentParseException e) {
                 throw new CommandRegistrationException("Couldn't register command.", e);
             }
@@ -85,21 +87,20 @@ public class CommandRegistrationProcessor {
      * node down to the parent. If an ascendant node is expected but not found, a
      * {@link CommandRegistrationException} will be thrown.
      *
-     * @param method         the method defining the command.
-     * @param commandHandler the command handler holding the method.
-     * @param command        the annotation of the method which declared it as a command.
-     * @param parents        the queue representation of all ascendant commands. Can be empty.
-     * @param ascendant      the ascendant command node.
+     * @param method    the method defining the command.
+     * @param command   the annotation of the method which declared it as a command.
+     * @param parents   the queue representation of all ascendant commands. Can be empty.
+     * @param ascendant the ascendant command node.
      */
-    private void addCommand(Method method, Object commandHandler, Command command,
+    private void addCommand(Method method, Command command,
                             Queue<String> parents, Node ascendant) throws ArgumentParseException {
         if (parents.isEmpty()) {
-            addChild(method, commandHandler, command, ascendant);
+            addChild(method, command, ascendant);
         } else {
             var next = parents.poll();
             var node = ascendant.find(next)
                     .orElseThrow(() -> new CommandRegistrationException("Missing parent node '" + next + "'", command));
-            addCommand(method, commandHandler, command, parents, node);
+            addCommand(method, command, parents, node);
         }
     }
 
@@ -108,16 +109,15 @@ public class CommandRegistrationProcessor {
      * aliases of the command are read from the annotation, if available. If the annotation is
      * available but the aliases can't be parsed, a {@link CommandRegistrationException} will be thrown.
      *
-     * @param method         the method defining the command.
-     * @param commandHandler the command handler holding the method.
-     * @param command        the annotation of the method which declared it as a command.
-     * @param parent         the direct parent of the command.
+     * @param method  the method defining the command.
+     * @param command the annotation of the method which declared it as a command.
+     * @param parent  the direct parent of the command.
      */
-    private void addChild(Method method, Object commandHandler, Command command, Node parent)
+    private void addChild(Method method, Command command, Node parent)
             throws ArgumentParseException {
         var commandName = command.value();
         var aliases = ReflectionUtils.getAnnotation(Alias.class, method);
-        var checkedMethod = CheckedInstanceMethod.of(method, commandHandler, parser.parseDefaults(method));
+        var checkedMethod = CheckedInstanceMethod.of(method, commandHandlerInstance, parser.parseDefaults(method));
         if (aliases.isPresent()) {
             String aliasesString = aliases.get().value();
             if (aliasesString.contains(",")) {

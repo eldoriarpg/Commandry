@@ -10,7 +10,7 @@ import de.eldoria.commandry.util.reflection.ParameterChain;
  */
 class CommandDispatcherNode extends Node {
     private final String name;
-    private final CheckedInstanceMethod method;
+    private final CheckedInstanceMethod<?> method;
 
     /**
      * Creates a new instance. The {@code commandHandler} object
@@ -21,7 +21,7 @@ class CommandDispatcherNode extends Node {
      * @param name   the name of the command.
      * @param method the method of the command.
      */
-    CommandDispatcherNode(Node parent, String name, CheckedInstanceMethod method) {
+    CommandDispatcherNode(Node parent, String name, CheckedInstanceMethod<?> method) {
         super(parent);
         this.name = name;
         this.method = method;

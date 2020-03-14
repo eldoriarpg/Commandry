@@ -72,7 +72,7 @@ public class Commandry<C> {
         var commandHandler = ReflectionUtils.newInstance(clazz)
                 .orElseThrow(() -> new CommandRegistrationException("Failed to register commands for class %s. "
                         + "No instance could be created. Is the default constructor public?"));
-        var registration = new CommandRegistrationProcessor(clazz, commandHandler, argumentParser);
+        var registration = new CommandRegistrationProcessor<>(clazz, commandHandler, argumentParser);
         registration.register(root);
     }
 

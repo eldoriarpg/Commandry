@@ -12,13 +12,15 @@ import java.util.Map;
  * to call the method with is directly bound to this object.
  * Also, parameters of the method are provided as chain, so they only can accessed one after another
  * in the order they're declared.
+ *
+ * @param <T> the type of the command handler instance.
  */
-public final class CheckedInstanceMethod {
+public final class CheckedInstanceMethod<T> {
     private final Method method;
-    private final Object instance;
+    private final T instance;
     private final Map<String, Object> parsedDefaults;
 
-    private CheckedInstanceMethod(Method method, Object instance, Map<String, Object> parsedDefaults) {
+    private CheckedInstanceMethod(Method method, T instance, Map<String, Object> parsedDefaults) {
         this.method = method;
         this.instance = instance;
         this.parsedDefaults = parsedDefaults;
@@ -28,12 +30,13 @@ public final class CheckedInstanceMethod {
      * Creates the wrapped method object for the given method and an associated object.
      * The declaring class of the method must be assignable from the object class.
      *
+     * @param <T>            the type of the command handler instance.
      * @param method         the method to wrap.
      * @param instance       the object instance to call the method with.
      * @param parsedDefaults a map of already parsed optional parameters
      * @return the wrapped method.
      */
-    public static CheckedInstanceMethod of(Method method, Object instance, Map<String, Object> parsedDefaults) {
+    public static <T> CheckedInstanceMethod<T> of(Method method, T instance, Map<String, Object> parsedDefaults) {
         if (!method.getDeclaringClass().isAssignableFrom(instance.getClass())) {
             throw new IllegalArgumentException("instance isn't of the type " + method.getDeclaringClass());
         }
@@ -45,7 +48,7 @@ public final class CheckedInstanceMethod {
             throw new IllegalArgumentException("method cannot be accessed. Is it public? " + method.getName());
         }
 
-        return new CheckedInstanceMethod(method, instance, new HashMap<>(parsedDefaults));
+        return new CheckedInstanceMethod<>(method, instance, new HashMap<>(parsedDefaults));
     }
 
     /**
